@@ -1,0 +1,10 @@
+pyrogram==2.0.106
+tgcrypto
+googletrans==4.0.0-rc1
+gTTS
+speedtest-cli
+pytz
+yt-dlp
+g4f
+aiohttp
+Pillow
