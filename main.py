@@ -429,6 +429,17 @@ async def help_cmd(client, message: Message):
 ├ `.mail chatpdf` — ChatPDF checkout
 
 🔐 **Checkout Generators:**
+├ `.setsk sk_live_xxx` — Set Stripe SK (global)
+├ `.ch [amount]` — Generate Stripe checkout
+├ `.inb [amount]` — Generate Stripe invoice
+├ `.pi [amount]` — Payment Intent
+├ `.pl [amount]` — Payment Link (shareable)
+├ `.skinfo` — SK account info
+├ `.balance` — Account balance
+├ `.charges [n]` — Recent charges
+├ `.customers [n]` — Recent customers
+├ `.refund [id]` — Refund payment
+├ `.coupon [%]` — Create discount coupon
 ├ `.freecad [amount]` — FreeCAD Stripe
 ├ `.1vpn [monthly/yearly]` — 1VPN
 
@@ -4295,6 +4306,445 @@ async def inb_cmd(client, message: Message):
 
     except Exception as e:
         await message.edit_text(f"❌ Invoice error: `{str(e)[:100]}`")
+
+
+# ==========================================
+# 💳 STRIPE SK COMMANDS (Advanced)
+# ==========================================
+
+# Command: .pi [amount] — Payment Intent
+@app.on_message(filters.me & filters.command("pi", prefixes="."))
+async def pi_cmd(client, message: Message):
+    try:
+        import requests as _req
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        args = message.text.split(None, 1)
+        try:
+            amount = float(args[1].strip()) if len(args) > 1 else 1.0
+        except:
+            amount = 1.0
+        amount_cents = int(amount * 100)
+
+        await message.edit_text(f"⚙️ Creating ${amount:.2f} Payment Intent...")
+
+        r = _req.post(
+            "https://api.stripe.com/v1/payment_intents",
+            auth=(sk, ""),
+            data={
+                "amount": str(amount_cents),
+                "currency": "usd",
+                "payment_method_types[]": "card",
+            },
+            timeout=15
+        )
+
+        data = r.json()
+        if r.status_code == 200:
+            pi_id = data.get("id", "")
+            client_secret = data.get("client_secret", "")
+            status = data.get("status", "")
+            await message.edit_text(
+                f"✅ **Payment Intent Created!**\n\n"
+                f"💰 **Amount:** `${amount:.2f} USD`\n"
+                f"🔑 **PI ID:** `{pi_id}`\n"
+                f"📋 **Status:** `{status}`\n"
+                f"🔐 **Client Secret:** `{client_secret}`"
+            )
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Stripe error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ PI error: `{str(e)[:100]}`")
+
+
+# Command: .skinfo — Show Stripe account info
+@app.on_message(filters.me & filters.command("skinfo", prefixes="."))
+async def skinfo_cmd(client, message: Message):
+    try:
+        import requests as _req
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        await message.edit_text("⚙️ Fetching account info...")
+
+        r = _req.get("https://api.stripe.com/v1/account", auth=(sk, ""), timeout=15)
+        data = r.json()
+
+        if r.status_code == 200:
+            biz_name = data.get("business_profile", {}).get("name") or data.get("settings", {}).get("dashboard", {}).get("display_name") or "N/A"
+            email = data.get("email", "N/A")
+            country = data.get("country", "N/A")
+            currency = data.get("default_currency", "N/A")
+            mode = "🟢 LIVE" if sk.startswith("sk_live_") else "🟡 TEST"
+            charges = "✅" if data.get("charges_enabled") else "❌"
+            payouts = "✅" if data.get("payouts_enabled") else "❌"
+
+            await message.edit_text(
+                f"🔐 **Stripe Account Info**\n\n"
+                f"├ **Business:** {biz_name}\n"
+                f"├ **Email:** `{email}`\n"
+                f"├ **Country:** {country}\n"
+                f"├ **Currency:** {currency.upper()}\n"
+                f"├ **Mode:** {mode}\n"
+                f"├ **Charges:** {charges}\n"
+                f"└ **Payouts:** {payouts}"
+            )
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Stripe error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ SKInfo error: `{str(e)[:100]}`")
+
+
+# Command: .balance — Show Stripe account balance
+@app.on_message(filters.me & filters.command("balance", prefixes="."))
+async def balance_cmd(client, message: Message):
+    try:
+        import requests as _req
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        await message.edit_text("⚙️ Fetching balance...")
+
+        r = _req.get("https://api.stripe.com/v1/balance", auth=(sk, ""), timeout=15)
+        data = r.json()
+
+        if r.status_code == 200:
+            text = "💰 **Stripe Account Balance**\n\n"
+
+            available = data.get("available", [])
+            if available:
+                text += "**Available:**\n"
+                for bal in available:
+                    amt = bal.get("amount", 0) / 100
+                    cur = bal.get("currency", "usd").upper()
+                    text += f"├ `{amt:.2f} {cur}`\n"
+
+            pending = data.get("pending", [])
+            if pending:
+                text += "\n**Pending:**\n"
+                for bal in pending:
+                    amt = bal.get("amount", 0) / 100
+                    cur = bal.get("currency", "usd").upper()
+                    text += f"├ `{amt:.2f} {cur}`\n"
+
+            if not available and not pending:
+                text += "No balance data found."
+
+            await message.edit_text(text)
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Stripe error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ Balance error: `{str(e)[:100]}`")
+
+
+# Command: .charges [n] — List last N charges
+@app.on_message(filters.me & filters.command("charges", prefixes="."))
+async def charges_cmd(client, message: Message):
+    try:
+        import requests as _req
+        from datetime import datetime
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        args = message.text.split(None, 1)
+        try:
+            limit = int(args[1].strip()) if len(args) > 1 else 5
+        except:
+            limit = 5
+        limit = min(max(limit, 1), 20)
+
+        await message.edit_text(f"⚙️ Fetching last {limit} charges...")
+
+        r = _req.get(
+            f"https://api.stripe.com/v1/charges?limit={limit}",
+            auth=(sk, ""), timeout=15
+        )
+        data = r.json()
+
+        if r.status_code == 200:
+            charges = data.get("data", [])
+            if not charges:
+                await message.edit_text("ℹ️ No charges found.")
+                return
+
+            text = f"💳 **Last {len(charges)} Charges:**\n\n"
+            for ch in charges:
+                ch_id = ch.get("id", "N/A")[:20]
+                amt = ch.get("amount", 0) / 100
+                cur = ch.get("currency", "usd").upper()
+                status = ch.get("status", "N/A")
+                card = ch.get("payment_method_details", {}).get("card", {})
+                last4 = card.get("last4", "****")
+                desc = ch.get("description", "No desc")
+                created = datetime.fromtimestamp(ch.get("created", 0)).strftime("%d/%m %H:%M")
+                status_icon = "✅" if status == "succeeded" else "❌" if status == "failed" else "⏳"
+
+                text += (
+                    f"{status_icon} `{ch_id}`\n"
+                    f"├ **{amt:.2f} {cur}** | Card: `*{last4}`\n"
+                    f"├ {desc[:30]} | {created}\n\n"
+                )
+
+            await message.edit_text(text[:4000])
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Stripe error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ Charges error: `{str(e)[:100]}`")
+
+
+# Command: .customers [n] — List last N customers
+@app.on_message(filters.me & filters.command("customers", prefixes="."))
+async def customers_cmd(client, message: Message):
+    try:
+        import requests as _req
+        from datetime import datetime
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        args = message.text.split(None, 1)
+        try:
+            limit = int(args[1].strip()) if len(args) > 1 else 5
+        except:
+            limit = 5
+        limit = min(max(limit, 1), 20)
+
+        await message.edit_text(f"⚙️ Fetching last {limit} customers...")
+
+        r = _req.get(
+            f"https://api.stripe.com/v1/customers?limit={limit}",
+            auth=(sk, ""), timeout=15
+        )
+        data = r.json()
+
+        if r.status_code == 200:
+            customers = data.get("data", [])
+            if not customers:
+                await message.edit_text("ℹ️ No customers found.")
+                return
+
+            text = f"👥 **Last {len(customers)} Customers:**\n\n"
+            for cust in customers:
+                cust_id = cust.get("id", "N/A")[:20]
+                email = cust.get("email", "N/A") or "N/A"
+                name = cust.get("name", "N/A") or "N/A"
+                created = datetime.fromtimestamp(cust.get("created", 0)).strftime("%d/%m/%Y")
+
+                text += (
+                    f"👤 `{cust_id}`\n"
+                    f"├ **Name:** {name}\n"
+                    f"├ **Email:** {email}\n"
+                    f"├ **Created:** {created}\n\n"
+                )
+
+            await message.edit_text(text[:4000])
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Stripe error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ Customers error: `{str(e)[:100]}`")
+
+
+# Command: .pl [amount] — Create Payment Link
+@app.on_message(filters.me & filters.command("pl", prefixes="."))
+async def pl_cmd(client, message: Message):
+    try:
+        import requests as _req
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        args = message.text.split(None, 1)
+        try:
+            amount = float(args[1].strip()) if len(args) > 1 else 1.0
+        except:
+            amount = 1.0
+        amount_cents = int(amount * 100)
+
+        await message.edit_text(f"⚙️ Creating ${amount:.2f} Payment Link...")
+
+        # Step 1: Create Price
+        r_price = _req.post(
+            "https://api.stripe.com/v1/prices",
+            auth=(sk, ""),
+            data={
+                "product_data[name]": f"Payment ${amount:.2f}",
+                "unit_amount": str(amount_cents),
+                "currency": "usd",
+            },
+            timeout=15
+        )
+        price_data = r_price.json()
+        if r_price.status_code != 200:
+            err = price_data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Price error: `{err}`")
+            return
+
+        price_id = price_data.get("id", "")
+
+        # Step 2: Create Payment Link
+        r_link = _req.post(
+            "https://api.stripe.com/v1/payment_links",
+            auth=(sk, ""),
+            data={
+                "line_items[0][price]": price_id,
+                "line_items[0][quantity]": "1",
+            },
+            timeout=15
+        )
+        link_data = r_link.json()
+
+        if r_link.status_code == 200:
+            link_url = link_data.get("url", "N/A")
+            link_id = link_data.get("id", "N/A")
+            await message.edit_text(
+                f"✅ **Payment Link Created!**\n\n"
+                f"💰 **Amount:** `${amount:.2f} USD`\n"
+                f"🔗 **Link:** `{link_url}`\n"
+                f"🆔 **ID:** `{link_id}`",
+                disable_web_page_preview=True
+            )
+        else:
+            err = link_data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Link error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ PL error: `{str(e)[:100]}`")
+
+
+# Command: .refund [payment_intent_id] — Refund a payment
+@app.on_message(filters.me & filters.command("refund", prefixes="."))
+async def refund_cmd(client, message: Message):
+    try:
+        import requests as _req
+        import re
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        pi_id = None
+
+        # Check for argument
+        args = message.text.split(None, 1)
+        if len(args) > 1:
+            pi_id = args[1].strip()
+        elif message.reply_to_message and message.reply_to_message.text:
+            # Extract pi_xxx from replied message
+            match = re.search(r'(pi_[A-Za-z0-9]+)', message.reply_to_message.text)
+            if match:
+                pi_id = match.group(1)
+
+        if not pi_id:
+            await message.edit_text("⚠️ **Usage:** `.refund pi_xxxxx` or reply to a message containing pi_xxx")
+            return
+
+        await message.edit_text(f"⚙️ Refunding `{pi_id}`...")
+
+        r = _req.post(
+            "https://api.stripe.com/v1/refunds",
+            auth=(sk, ""),
+            data={"payment_intent": pi_id},
+            timeout=15
+        )
+        data = r.json()
+
+        if r.status_code == 200:
+            ref_id = data.get("id", "N/A")
+            amount = data.get("amount", 0) / 100
+            cur = data.get("currency", "usd").upper()
+            status = data.get("status", "N/A")
+            await message.edit_text(
+                f"✅ **Refund Successful!**\n\n"
+                f"🔙 **Refund ID:** `{ref_id}`\n"
+                f"💰 **Amount:** `{amount:.2f} {cur}`\n"
+                f"📋 **Status:** `{status}`\n"
+                f"🎯 **PI:** `{pi_id}`"
+            )
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Refund error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ Refund error: `{str(e)[:100]}`")
+
+
+# Command: .coupon [percent] — Create discount coupon
+@app.on_message(filters.me & filters.command("coupon", prefixes="."))
+async def coupon_cmd(client, message: Message):
+    try:
+        import requests as _req
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        args = message.text.split(None, 1)
+        try:
+            percent = int(args[1].strip()) if len(args) > 1 else 10
+        except:
+            percent = 10
+        percent = min(max(percent, 1), 100)
+
+        await message.edit_text(f"⚙️ Creating {percent}% coupon...")
+
+        r = _req.post(
+            "https://api.stripe.com/v1/coupons",
+            auth=(sk, ""),
+            data={
+                "percent_off": str(percent),
+                "duration": "once",
+            },
+            timeout=15
+        )
+        data = r.json()
+
+        if r.status_code == 200:
+            coupon_id = data.get("id", "N/A")
+            pct = data.get("percent_off", percent)
+            dur = data.get("duration", "once")
+            await message.edit_text(
+                f"✅ **Coupon Created!**\n\n"
+                f"🏷️ **Code:** `{coupon_id}`\n"
+                f"💯 **Discount:** `{pct}%`\n"
+                f"⏱ **Duration:** `{dur}`"
+            )
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Coupon error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ Coupon error: `{str(e)[:100]}`")
+
+
 
 
 if __name__ == "__main__":
