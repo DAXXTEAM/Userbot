@@ -1,0 +1,915 @@
+import os
+import time
+import asyncio
+from pyrogram import Client, filters, idle
+from pyrogram.types import Message
+import pyrogram
+import pyrogram.enums
+import random
+import aiohttp
+
+# Configuration
+API_ID = 2040
+API_HASH = "b18441a1ff607e10a989891a5462e627"
+SESSION_STRING = os.environ.get("USERBOT_SESSION", "")
+
+# Initialize client with StringSession
+app = Client(
+    "userbot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    session_string=SESSION_STRING
+)
+
+# Global state
+START_TIME = time.time()
+AFK_MODE = False
+AFK_REASON = ""
+AFK_TIME = None
+
+
+def get_uptime():
+    diff = time.time() - START_TIME
+    hours, remainder = divmod(int(diff), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    days, hours = divmod(hours, 24)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    parts.append(f"{seconds}s")
+    return " ".join(parts)
+
+
+def get_uptime_from(start):
+    diff = time.time() - start
+    hours, remainder = divmod(int(diff), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    parts = []
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    parts.append(f"{seconds}s")
+    return " ".join(parts)
+
+
+# Command: .alive
+@app.on_message(filters.me & filters.command("alive", prefixes="."))
+async def alive_cmd(client, message: Message):
+    uptime = get_uptime()
+    await message.edit_text(
+        f"✅ **Userbot is Alive!**\n"
+        f"⏱ **Uptime:** `{uptime}`\n"
+        f"🐍 **Pyrogram** v2.0.106"
+    )
+
+
+# Command: .ping
+@app.on_message(filters.me & filters.command("ping", prefixes="."))
+async def ping_cmd(client, message: Message):
+    start = time.time()
+    await message.edit_text("🏓 Pong!")
+    end = time.time()
+    ms = (end - start) * 1000
+    await message.edit_text(f"🏓 **Pong!** `{ms:.2f}ms`")
+
+
+# Command: .id
+@app.on_message(filters.me & filters.command("id", prefixes="."))
+async def id_cmd(client, message: Message):
+    text = f"💡 **Chat ID:** `{message.chat.id}`\n"
+    if message.reply_to_message and message.reply_to_message.from_user:
+        user = message.reply_to_message.from_user
+        text += f"👤 **User ID:** `{user.id}`\n"
+        text += f"📛 **Name:** {user.first_name or ''} {user.last_name or ''}"
+    else:
+        text += f"👤 **Your ID:** `{message.from_user.id}`"
+    await message.edit_text(text)
+
+
+# Command: .info
+@app.on_message(filters.me & filters.command("info", prefixes="."))
+async def info_cmd(client, message: Message):
+    if message.reply_to_message and message.reply_to_message.from_user:
+        user = message.reply_to_message.from_user
+    else:
+        user = message.from_user
+
+    full_user = await client.get_users(user.id)
+    name = f"{full_user.first_name or ''} {full_user.last_name or ''}".strip()
+    username = f"@{full_user.username}" if full_user.username else "N/A"
+    dc_id = full_user.dc_id or "Unknown"
+
+    text = (
+        f"👤 **User Info**\n"
+        f"├ **Name:** {name}\n"
+        f"├ **Username:** {username}\n"
+        f"├ **ID:** `{full_user.id}`\n"
+        f"├ **DC:** {dc_id}\n"
+        f"└ **Bot:** {'Yes' if full_user.is_bot else 'No'}"
+    )
+    await message.edit_text(text)
+
+
+# Command: .tr [lang] — supports reply + inline text
+# Usage: .tr hi (reply to msg) OR .tr hi Hello World (inline text)
+@app.on_message(filters.me & filters.command("tr", prefixes="."))
+async def translate_cmd(client, message: Message):
+    try:
+        from googletrans import Translator
+        translator = Translator()
+
+        args = message.text.split(None, 2)
+        dest_lang = args[1] if len(args) > 1 else "en"
+
+        # Get text: inline text OR replied message
+        if len(args) > 2:
+            # .tr hi Hello World (inline)
+            text = args[2]
+        elif message.reply_to_message and message.reply_to_message.text:
+            # Reply to message
+            text = message.reply_to_message.text
+        else:
+            await message.edit_text(
+                "⚠️ **Usage:**\n"
+                "`.tr hi` — reply kisi message pe\n"
+                "`.tr en Hello kaise ho` — inline text"
+            )
+            return
+
+        result = translator.translate(text, dest=dest_lang)
+        await message.edit_text(
+            f"🌐 **Translation** `{result.src}` → `{dest_lang}`\n\n{result.text}"
+        )
+    except Exception as e:
+        await message.edit_text(f"❌ Translation error: `{e}`")
+
+
+# Command: .tts
+@app.on_message(filters.me & filters.command("tts", prefixes="."))
+async def tts_cmd(client, message: Message):
+    try:
+        from gtts import gTTS
+        import tempfile
+
+        if message.reply_to_message and message.reply_to_message.text:
+            text = message.reply_to_message.text
+        else:
+            args = message.text.split(None, 1)
+            if len(args) < 2:
+                await message.edit_text("⚠️ Reply to a message or provide text.")
+                return
+            text = args[1]
+
+        await message.edit_text("🔊 Converting to speech...")
+        tts = gTTS(text=text, lang="en")
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+            tts.save(f.name)
+            await message.delete()
+            await client.send_voice(message.chat.id, f.name)
+            os.unlink(f.name)
+    except Exception as e:
+        await message.edit_text(f"❌ TTS error: `{e}`")
+
+
+# Command: .del
+@app.on_message(filters.me & filters.command("del", prefixes="."))
+async def del_cmd(client, message: Message):
+    try:
+        if message.reply_to_message:
+            await message.reply_to_message.delete()
+        await message.delete()
+    except Exception as e:
+        await message.edit_text(f"❌ Delete error: `{e}`")
+
+
+# Command: .purge
+@app.on_message(filters.me & filters.command("purge", prefixes="."))
+async def purge_cmd(client, message: Message):
+    try:
+        if not message.reply_to_message:
+            await message.edit_text("⚠️ Reply to a message to start purge from.")
+            return
+
+        chat_id = message.chat.id
+        start_id = message.reply_to_message.id
+        end_id = message.id
+        msg_ids = list(range(start_id, end_id + 1))
+
+        count = 0
+        for i in range(0, len(msg_ids), 100):
+            chunk = msg_ids[i:i+100]
+            await client.delete_messages(chat_id, chunk)
+            count += len(chunk)
+
+        status = await client.send_message(chat_id, f"🗑 **Purged {count} messages.**")
+        await asyncio.sleep(2)
+        await status.delete()
+    except Exception as e:
+        await message.edit_text(f"❌ Purge error: `{e}`")
+
+
+# Command: .afk [reason]
+@app.on_message(filters.me & filters.command("afk", prefixes="."))
+async def afk_cmd(client, message: Message):
+    global AFK_MODE, AFK_REASON, AFK_TIME
+    args = message.text.split(None, 1)
+    AFK_REASON = args[1] if len(args) > 1 else "No reason given."
+    AFK_MODE = True
+    AFK_TIME = time.time()
+    await message.edit_text(f"💤 **AFK Mode Enabled**\nReason: {AFK_REASON}")
+
+
+# Command: .unafk
+@app.on_message(filters.me & filters.command("unafk", prefixes="."))
+async def unafk_cmd(client, message: Message):
+    global AFK_MODE, AFK_REASON, AFK_TIME
+    if AFK_MODE:
+        AFK_MODE = False
+        duration = get_uptime_from(AFK_TIME) if AFK_TIME else "0s"
+        AFK_REASON = ""
+        AFK_TIME = None
+        await message.edit_text(f"✅ **Back online!** Was AFK for {duration}")
+    else:
+        await message.edit_text("ℹ️ You weren't AFK.")
+
+
+# AFK auto-reply handler
+@app.on_message(filters.mentioned & filters.incoming & ~filters.me)
+async def afk_reply(client, message: Message):
+    if AFK_MODE:
+        duration = get_uptime_from(AFK_TIME) if AFK_TIME else "0s"
+        await message.reply_text(
+            f"💤 **I'm currently AFK** ({duration})\n"
+            f"📝 **Reason:** {AFK_REASON}"
+        )
+
+
+# Command: .speedtest
+@app.on_message(filters.me & filters.command("speedtest", prefixes="."))
+async def speedtest_cmd(client, message: Message):
+    try:
+        import speedtest
+        await message.edit_text("⏳ **Running speedtest...**")
+        st = speedtest.Speedtest()
+        st.get_best_server()
+        st.download()
+        st.upload()
+        results = st.results.dict()
+
+        download = results["download"] / 1_000_000
+        upload = results["upload"] / 1_000_000
+        ping = results["ping"]
+        server = results["server"]["name"]
+        country = results["server"]["country"]
+
+        await message.edit_text(
+            f"🚀 **Speedtest Results**\n"
+            f"├ **Download:** `{download:.2f} Mbps`\n"
+            f"├ **Upload:** `{upload:.2f} Mbps`\n"
+            f"├ **Ping:** `{ping:.2f} ms`\n"
+            f"└ **Server:** {server}, {country}"
+        )
+    except Exception as e:
+        try:
+            await message.edit_text(f"❌ Speedtest error: `{e}`")
+        except:
+            await message.reply_text(f"❌ Speedtest error: `{e}`")
+
+
+# Command: .calc [expression]
+@app.on_message(filters.me & filters.command("calc", prefixes="."))
+async def calc_cmd(client, message: Message):
+    try:
+        args = message.text.split(None, 1)
+        if len(args) < 2:
+            await message.edit_text("⚠️ Usage: `.calc <expression>`")
+            return
+
+        expr = args[1]
+        allowed_chars = set("0123456789+-*/.() %")
+        if not all(c in allowed_chars for c in expr.replace(" ", "")):
+            await message.edit_text("⚠️ Invalid expression. Only math operators allowed.")
+            return
+
+        result = eval(expr)
+        await message.edit_text(f"🧮 `{expr}` = **{result}**")
+    except ZeroDivisionError:
+        await message.edit_text("⚠️ Division by zero!")
+    except Exception as e:
+        await message.edit_text(f"❌ Calc error: `{e}`")
+
+
+# Command: .help
+@app.on_message(filters.me & filters.command("help", prefixes="."))
+async def help_cmd(client, message: Message):
+    help_text = """📚 **Userbot Commands** (prefix: `.`)
+
+**🔧 Utility:**
+├ `.alive` — Check bot status & uptime
+├ `.ping` — Response time in ms
+├ `.id` — Show user/chat ID
+├ `.info` — User info (reply or self)
+├ `.tr [lang]` — Translate replied message
+├ `.tts` — Text to speech (reply/text)
+├ `.del` — Delete replied message
+├ `.purge` — Purge msgs from reply to now
+├ `.afk [reason]` — Enable AFK mode
+├ `.unafk` — Disable AFK mode
+├ `.speedtest` — Internet speed test
+├ `.calc [expr]` — Calculator
+
+**📱 Social/Info:**
+├ `.chatinfo` — Group/chat details
+├ `.admins` — List group admins
+├ `.invite` — Generate invite link
+
+**🎵 Media:**
+├ `.yt [query]` — Download YouTube video
+├ `.ytm [query]` — Download YouTube audio
+├ `.sticker` — Convert image to sticker
+
+**🤖 AI:**
+├ `.ai [text]` — Chat with AI
+
+**😎 Fun:**
+├ `.joke` — Random joke
+├ `.quote` — Inspirational quote
+├ `.flip` — Coin flip
+├ `.roll` — Dice roll
+├ `.roast [name]` — Roast someone
+
+**⚡ Automation:**
+├ `.autoreply [trigger] | [response]` — Set auto reply
+├ `.delauto [trigger]` — Delete auto reply
+├ `.listauto` — List auto replies
+├ `.forward [chat_id]` — Forward message
+
+**🛡️ Group Admin:**
+├ `.ban` — Ban user
+├ `.kick` — Kick user
+├ `.mute` — Mute user
+├ `.unmute` — Unmute user
+├ `.pin` — Pin message
+├ `.unpin` — Unpin message
+
+└ `.help` — Show this help"""
+    await message.edit_text(help_text)
+
+
+import random
+import json
+
+# ==========================================
+# AUTO-REPLY STATE
+# ==========================================
+AUTO_REPLIES = {}
+
+
+# ==========================================
+# 📱 SOCIAL/INFO COMMANDS
+# ==========================================
+
+# Command: .chatinfo
+@app.on_message(filters.me & filters.command("chatinfo", prefixes="."))
+async def chatinfo_cmd(client, message: Message):
+    try:
+        chat = await client.get_chat(message.chat.id)
+        members = getattr(chat, 'members_count', 'N/A')
+        desc = getattr(chat, 'description', 'N/A') or 'N/A'
+        chat_type = str(chat.type).split('.')[-1].title()
+        text = (
+            f"📱 **Chat Info**\n"
+            f"├ **Name:** {chat.title or chat.first_name or 'N/A'}\n"
+            f"├ **ID:** `{chat.id}`\n"
+            f"├ **Type:** {chat_type}\n"
+            f"├ **Members:** {members}\n"
+            f"└ **Description:** {desc[:100]}"
+        )
+        await message.edit_text(text)
+    except Exception as e:
+        await message.edit_text(f"❌ Error: `{e}`")
+
+
+# Command: .admins
+@app.on_message(filters.me & filters.command("admins", prefixes="."))
+async def admins_cmd(client, message: Message):
+    try:
+        await message.edit_text("⏳ Fetching admins...")
+        admins = []
+        async for member in client.get_chat_members(message.chat.id, filter=pyrogram.enums.ChatMembersFilter.ADMINISTRATORS):
+            name = f"{member.user.first_name or ''} {member.user.last_name or ''}".strip()
+            tag = f"@{member.user.username}" if member.user.username else name
+            admins.append(f"├ {tag} (`{member.user.id}`)")
+        if admins:
+            text = f"👑 **Admins ({len(admins)}):**\n" + "\n".join(admins)
+        else:
+            text = "⚠️ No admins found or not a group."
+        await message.edit_text(text)
+    except Exception as e:
+        await message.edit_text(f"❌ Error: `{e}`")
+
+
+# Command: .invite
+@app.on_message(filters.me & filters.command("invite", prefixes="."))
+async def invite_cmd(client, message: Message):
+    try:
+        link = await client.export_chat_invite_link(message.chat.id)
+        await message.edit_text(f"🔗 **Invite Link:**\n{link}")
+    except Exception as e:
+        await message.edit_text(f"❌ Error: `{e}`")
+
+
+# ==========================================
+# 🎵 MEDIA COMMANDS
+# ==========================================
+
+# Command: .yt [query]
+@app.on_message(filters.me & filters.command("yt", prefixes="."))
+async def yt_cmd(client, message: Message):
+    try:
+        import yt_dlp
+        import tempfile
+        import glob
+
+        args = message.text.split(None, 1)
+        if len(args) < 2:
+            await message.edit_text("⚠️ Usage: `.yt <search query or URL>`")
+            return
+
+        query = args[1]
+        await message.edit_text(f"⏳ Searching & downloading: `{query}`...")
+
+        tmp_dir = tempfile.mkdtemp()
+        ydl_opts = {
+            'format': 'best[filesize<50M]/best',
+            'outtmpl': f'{tmp_dir}/%(title)s.%(ext)s',
+            'noplaylist': True,
+            'quiet': True,
+            'max_filesize': 50 * 1024 * 1024,
+        }
+
+        if not query.startswith("http"):
+            ydl_opts['default_search'] = 'ytsearch'
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(query, download=True)
+            if 'entries' in info:
+                info = info['entries'][0]
+            title = info.get('title', 'Video')
+
+        files = glob.glob(f"{tmp_dir}/*")
+        if files:
+            await message.delete()
+            await client.send_video(message.chat.id, files[0], caption=f"🎬 **{title}**")
+            os.unlink(files[0])
+        else:
+            await message.edit_text("❌ Download failed.")
+        os.rmdir(tmp_dir) if os.path.exists(tmp_dir) else None
+    except Exception as e:
+        await message.edit_text(f"❌ YT Error: `{str(e)[:200]}`")
+
+
+# Command: .ytm [query]
+@app.on_message(filters.me & filters.command("ytm", prefixes="."))
+async def ytm_cmd(client, message: Message):
+    try:
+        import yt_dlp
+        import tempfile
+        import glob
+
+        args = message.text.split(None, 1)
+        if len(args) < 2:
+            await message.edit_text("⚠️ Usage: `.ytm <search query or URL>`")
+            return
+
+        query = args[1]
+        await message.edit_text(f"⏳ Downloading audio: `{query}`...")
+
+        tmp_dir = tempfile.mkdtemp()
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': f'{tmp_dir}/%(title)s.%(ext)s',
+            'noplaylist': True,
+            'quiet': True,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
+
+        if not query.startswith("http"):
+            ydl_opts['default_search'] = 'ytsearch'
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(query, download=True)
+            if 'entries' in info:
+                info = info['entries'][0]
+            title = info.get('title', 'Audio')
+
+        files = glob.glob(f"{tmp_dir}/*")
+        if files:
+            await message.delete()
+            await client.send_audio(message.chat.id, files[0], title=title, caption=f"🎵 **{title}**")
+            os.unlink(files[0])
+        else:
+            await message.edit_text("❌ Download failed.")
+        os.rmdir(tmp_dir) if os.path.exists(tmp_dir) else None
+    except Exception as e:
+        await message.edit_text(f"❌ YTM Error: `{str(e)[:200]}`")
+
+
+# Command: .sticker — supports image (static) + GIF/video (animated)
+@app.on_message(filters.me & filters.command("sticker", prefixes="."))
+async def sticker_cmd(client, message: Message):
+    try:
+        from PIL import Image
+        import tempfile, subprocess
+
+        reply = message.reply_to_message
+        if not reply:
+            await message.edit_text(
+                "⚠️ **Usage:**\n"
+                "Reply to an **image** → static sticker\n"
+                "Reply to a **GIF/video** → animated sticker"
+            )
+            return
+
+        # Animated sticker — GIF or video
+        if reply.animation or reply.video or reply.document:
+            await message.edit_text("⏳ Converting to animated sticker...")
+            file_path = await reply.download()
+            out_path = file_path + ".webm"
+
+            # Convert to webm (VP9) for animated sticker
+            subprocess.run([
+                "ffmpeg", "-i", file_path,
+                "-vf", "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2",
+                "-t", "3",  # max 3 seconds
+                "-c:v", "libvpx-vp9",
+                "-b:v", "0", "-crf", "30",
+                "-an", "-y", out_path
+            ], capture_output=True)
+
+            await message.delete()
+            await client.send_sticker(message.chat.id, out_path)
+            os.unlink(file_path)
+            os.unlink(out_path)
+
+        # Static sticker — image/photo
+        elif reply.photo or (reply.document and reply.document.mime_type and "image" in reply.document.mime_type):
+            await message.edit_text("⏳ Converting to sticker...")
+            photo_path = await reply.download()
+
+            with tempfile.NamedTemporaryFile(suffix=".webp", delete=False) as f:
+                img = Image.open(photo_path)
+                img = img.resize((512, 512))
+                img.save(f.name, "WEBP")
+                await message.delete()
+                await client.send_sticker(message.chat.id, f.name)
+                os.unlink(f.name)
+            os.unlink(photo_path)
+
+        else:
+            await message.edit_text("⚠️ Reply to an image, GIF, or video!")
+
+    except Exception as e:
+        await message.edit_text(f"❌ Sticker error: `{e}`")
+
+
+# ==========================================
+# 🤖 AI COMMANDS
+# ==========================================
+
+# Command: .ai [text]
+@app.on_message(filters.me & filters.command("ai", prefixes="."))
+async def ai_cmd(client, message: Message):
+    try:
+        import g4f
+
+        args = message.text.split(None, 1)
+        if len(args) < 2:
+            await message.edit_text("⚠️ Usage: `.ai <your question>`")
+            return
+
+        text = args[1]
+        await message.edit_text("🤖 **Thinking...**")
+
+        response = g4f.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": text}]
+        )
+
+        if isinstance(response, str):
+            reply = response
+        else:
+            reply = "".join(response)
+
+        if not reply.strip():
+            reply = "⚠️ No response received."
+
+        await message.edit_text(f"🤖 **AI:**\n\n{reply[:4000]}")
+    except Exception as e:
+        await message.edit_text(f"❌ AI Error: `{str(e)[:200]}`")
+
+
+# ==========================================
+# 😎 FUN COMMANDS
+# ==========================================
+
+# Command: .joke
+@app.on_message(filters.me & filters.command("joke", prefixes="."))
+async def joke_cmd(client, message: Message):
+    try:
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://v2.jokeapi.dev/joke/Any?safe-mode") as resp:
+                data = await resp.json()
+                if data.get("type") == "single":
+                    joke = data["joke"]
+                else:
+                    joke = f"{data['setup']}\n\n{data['delivery']}"
+        await message.edit_text(f"😂 **Joke:**\n\n{joke}")
+    except Exception as e:
+        await message.edit_text(f"❌ Joke error: `{e}`")
+
+
+# Command: .quote
+@app.on_message(filters.me & filters.command("quote", prefixes="."))
+async def quote_cmd(client, message: Message):
+    try:
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://api.quotable.io/random") as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    text = data.get("content", "No quote found.")
+                    author = data.get("author", "Unknown")
+                else:
+                    # Fallback quotes
+                    fallback = [
+                        ("The only way to do great work is to love what you do.", "Steve Jobs"),
+                        ("Innovation distinguishes between a leader and a follower.", "Steve Jobs"),
+                        ("Life is what happens when you're busy making other plans.", "John Lennon"),
+                        ("The future belongs to those who believe in the beauty of their dreams.", "Eleanor Roosevelt"),
+                        ("It is during our darkest moments that we must focus to see the light.", "Aristotle"),
+                    ]
+                    text, author = random.choice(fallback)
+        await message.edit_text(f"💬 **Quote:**\n\n_{text}_\n\n— **{author}**")
+    except Exception as e:
+        # Fallback on error
+        fallback = [
+            ("The only way to do great work is to love what you do.", "Steve Jobs"),
+            ("Innovation distinguishes between a leader and a follower.", "Steve Jobs"),
+            ("Life is what happens when you're busy making other plans.", "John Lennon"),
+        ]
+        text, author = random.choice(fallback)
+        await message.edit_text(f"💬 **Quote:**\n\n_{text}_\n\n— **{author}**")
+
+
+# Command: .flip
+@app.on_message(filters.me & filters.command("flip", prefixes="."))
+async def flip_cmd(client, message: Message):
+    result = random.choice(["🪙 **Heads!**", "🪙 **Tails!**"])
+    await message.edit_text(result)
+
+
+# Command: .roll
+@app.on_message(filters.me & filters.command("roll", prefixes="."))
+async def roll_cmd(client, message: Message):
+    result = random.randint(1, 6)
+    dice_emoji = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"]
+    await message.edit_text(f"🎲 **Rolled:** {dice_emoji[result-1]} **{result}**")
+
+
+# Command: .roast [name]
+@app.on_message(filters.me & filters.command("roast", prefixes="."))
+async def roast_cmd(client, message: Message):
+    roasts = [
+        "Tu itna boring hai ki teri Wi-Fi bhi disconnect ho jaati hai. 💀",
+        "Tera phone bhi airplane mode me rehna chahta hai tujhse baat na kare. ✈️",
+        "Google pe 'useless' search karunga toh tera LinkedIn aayega. 😂",
+        "Tera brain cell bhi single hai, tujhse zyada lonely. 🧠",
+        "Tu itna slow hai, tera hotspot bhi 2G deta hai. 🐌",
+        "Teri personality ka update aaya hai — still loading... ⏳",
+        "Tujhe dekh ke WiFi router bhi buffering karta hai. 📶",
+        "Tera code bina bug ke nahi chalta, aur life bhi. 🪲",
+        "Tu itna basic hai, tera blood type 'Hello World' hai. 💉",
+        "Tera sense of humor 404 Not Found hai bhai. 🚫",
+        "Tujhe roast karna microwave me ice cream dalna hai — too easy. 🍦",
+        "Tera resume dekh ke recruiter ne apni job chhod di. 📄",
+        "Tu itna irrelevant hai, tere notifications bhi nahi aate. 🔕",
+        "Tujhse zyada personality toh mere error messages me hai. ⚠️",
+        "Teri life ka git log sirf 'initial commit' pe ruka hai. 🗂️",
+    ]
+    args = message.text.split(None, 1)
+    name = args[1] if len(args) > 1 else "Bhai"
+    roast = random.choice(roasts)
+    await message.edit_text(f"🔥 **{name}:** {roast}")
+
+
+# ==========================================
+# ⚡ AUTOMATION COMMANDS
+# ==========================================
+
+# Command: .autoreply [trigger] | [response]
+@app.on_message(filters.me & filters.command("autoreply", prefixes="."))
+async def autoreply_cmd(client, message: Message):
+    try:
+        args = message.text.split(None, 1)
+        if len(args) < 2 or "|" not in args[1]:
+            await message.edit_text("⚠️ Usage: `.autoreply trigger | response`")
+            return
+        parts = args[1].split("|", 1)
+        trigger = parts[0].strip().lower()
+        response = parts[1].strip()
+        AUTO_REPLIES[trigger] = response
+        await message.edit_text(f"✅ Auto-reply set:\n**Trigger:** `{trigger}`\n**Response:** {response}")
+    except Exception as e:
+        await message.edit_text(f"❌ Error: `{e}`")
+
+
+# Command: .delauto [trigger]
+@app.on_message(filters.me & filters.command("delauto", prefixes="."))
+async def delauto_cmd(client, message: Message):
+    args = message.text.split(None, 1)
+    if len(args) < 2:
+        await message.edit_text("⚠️ Usage: `.delauto <trigger>`")
+        return
+    trigger = args[1].strip().lower()
+    if trigger in AUTO_REPLIES:
+        del AUTO_REPLIES[trigger]
+        await message.edit_text(f"✅ Auto-reply for `{trigger}` deleted.")
+    else:
+        await message.edit_text(f"⚠️ No auto-reply found for `{trigger}`.")
+
+
+# Command: .listauto
+@app.on_message(filters.me & filters.command("listauto", prefixes="."))
+async def listauto_cmd(client, message: Message):
+    if not AUTO_REPLIES:
+        await message.edit_text("ℹ️ No auto-replies set.")
+        return
+    text = "📋 **Auto-Replies:**\n\n"
+    for trigger, response in AUTO_REPLIES.items():
+        text += f"├ `{trigger}` → {response}\n"
+    await message.edit_text(text)
+
+
+# Auto-reply handler
+@app.on_message(filters.incoming & ~filters.me & filters.text)
+async def auto_reply_handler(client, message: Message):
+    if AUTO_REPLIES and message.text:
+        msg_lower = message.text.lower()
+        for trigger, response in AUTO_REPLIES.items():
+            if trigger in msg_lower:
+                await message.reply_text(response)
+                break
+
+
+# Command: .forward [chat_id]
+@app.on_message(filters.me & filters.command("forward", prefixes="."))
+async def forward_cmd(client, message: Message):
+    try:
+        args = message.text.split(None, 1)
+        if len(args) < 2:
+            await message.edit_text("⚠️ Usage: `.forward <chat_id>` (reply to a message)")
+            return
+        if not message.reply_to_message:
+            await message.edit_text("⚠️ Reply to a message to forward it.")
+            return
+
+        target = int(args[1])
+        await message.reply_to_message.forward(target)
+        await message.edit_text(f"✅ Message forwarded to `{target}`.")
+    except ValueError:
+        await message.edit_text("⚠️ Invalid chat ID. Must be a number.")
+    except Exception as e:
+        await message.edit_text(f"❌ Forward error: `{e}`")
+
+
+# ==========================================
+# 🛡️ GROUP ADMIN COMMANDS
+# ==========================================
+
+# Command: .ban
+@app.on_message(filters.me & filters.command("ban", prefixes="."))
+async def ban_cmd(client, message: Message):
+    try:
+        if not message.reply_to_message or not message.reply_to_message.from_user:
+            await message.edit_text("⚠️ Reply to a user to ban them.")
+            return
+        user = message.reply_to_message.from_user
+        await client.ban_chat_member(message.chat.id, user.id)
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        await message.edit_text(f"🔨 **Banned:** {name} (`{user.id}`)")
+    except Exception as e:
+        await message.edit_text(f"❌ Ban error: `{e}`")
+
+
+# Command: .kick
+@app.on_message(filters.me & filters.command("kick", prefixes="."))
+async def kick_cmd(client, message: Message):
+    try:
+        if not message.reply_to_message or not message.reply_to_message.from_user:
+            await message.edit_text("⚠️ Reply to a user to kick them.")
+            return
+        user = message.reply_to_message.from_user
+        await client.ban_chat_member(message.chat.id, user.id)
+        await asyncio.sleep(1)
+        await client.unban_chat_member(message.chat.id, user.id)
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        await message.edit_text(f"👢 **Kicked:** {name} (`{user.id}`)")
+    except Exception as e:
+        await message.edit_text(f"❌ Kick error: `{e}`")
+
+
+# Command: .mute
+@app.on_message(filters.me & filters.command("mute", prefixes="."))
+async def mute_cmd(client, message: Message):
+    try:
+        from pyrogram.types import ChatPermissions
+        if not message.reply_to_message or not message.reply_to_message.from_user:
+            await message.edit_text("⚠️ Reply to a user to mute them.")
+            return
+        user = message.reply_to_message.from_user
+        await client.restrict_chat_member(
+            message.chat.id, user.id,
+            ChatPermissions(can_send_messages=False)
+        )
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        await message.edit_text(f"🔇 **Muted:** {name} (`{user.id}`)")
+    except Exception as e:
+        await message.edit_text(f"❌ Mute error: `{e}`")
+
+
+# Command: .unmute
+@app.on_message(filters.me & filters.command("unmute", prefixes="."))
+async def unmute_cmd(client, message: Message):
+    try:
+        from pyrogram.types import ChatPermissions
+        if not message.reply_to_message or not message.reply_to_message.from_user:
+            await message.edit_text("⚠️ Reply to a user to unmute them.")
+            return
+        user = message.reply_to_message.from_user
+        await client.restrict_chat_member(
+            message.chat.id, user.id,
+            ChatPermissions(
+                can_send_messages=True,
+                can_send_media_messages=True,
+                can_send_other_messages=True,
+                can_add_web_page_previews=True
+            )
+        )
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        await message.edit_text(f"🔊 **Unmuted:** {name} (`{user.id}`)")
+    except Exception as e:
+        await message.edit_text(f"❌ Unmute error: `{e}`")
+
+
+# Command: .pin
+@app.on_message(filters.me & filters.command("pin", prefixes="."))
+async def pin_cmd(client, message: Message):
+    try:
+        if not message.reply_to_message:
+            await message.edit_text("⚠️ Reply to a message to pin it.")
+            return
+        await client.pin_chat_message(message.chat.id, message.reply_to_message.id)
+        await message.edit_text("📌 **Message pinned!**")
+    except Exception as e:
+        await message.edit_text(f"❌ Pin error: `{e}`")
+
+
+# Command: .unpin
+@app.on_message(filters.me & filters.command("unpin", prefixes="."))
+async def unpin_cmd(client, message: Message):
+    try:
+        if not message.reply_to_message:
+            await message.edit_text("⚠️ Reply to a message to unpin it.")
+            return
+        await client.unpin_chat_message(message.chat.id, message.reply_to_message.id)
+        await message.edit_text("📌 **Message unpinned!**")
+    except Exception as e:
+        await message.edit_text(f"❌ Unpin error: `{e}`")
+
+
+
+
+
+
+async def main():
+    await app.start()
+    me = await app.get_me()
+    print(f"Userbot started! Logged in as {me.first_name} (ID: {me.id})")
+    await idle()
+    await app.stop()
+
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())

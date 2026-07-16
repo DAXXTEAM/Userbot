@@ -11,7 +11,7 @@ import aiohttp
 # Configuration
 API_ID = 2040
 API_HASH = "b18441a1ff607e10a989891a5462e627"
-SESSION_STRING = "BQIfOJ4Am2pQtmZ1kSvoqDOrh0cEYEcxKJ0Db4TkfrufZ-5OZfr6nz8Xeum_QIERhXW-wHTZdg79lJrMGW9kzv3DSyNMwsJfinqNfXPJGXLH5PMGLd2z3I5IDBzsmH_XYXPZ2uDoX-W306klsAUNcirMecP6AMyILoEDfBbuaXW0OWw_6kh2x0pEEIJg-lAiRswB_aGmto097ipI5j_EDoyHgEe0vRMkX7YatGuRbST4G4TolpLQgKnqRn2jmjwz_4m9bd94jiUu5_OrnDVFOjjz5oMkUDq8o-ErONWQdd49-29DCIBIU-C8PwSLI7xHCbR6qQnKDZBMSiXgnOY9fcGurl8IPgAAAAHwEA8FAA"
+SESSION_STRING = os.environ.get("USERBOT_SESSION", "")
 
 # Initialize client with StringSession
 app = Client(
@@ -309,153 +309,55 @@ async def calc_cmd(client, message: Message):
 async def help_cmd(client, message: Message):
     help_text = """📚 **Userbot Commands** (prefix: `.`)
 
-🔧 **Utility:**
-├ `.alive` — Status & uptime
-├ `.ping` — Response time
-├ `.id` — User/chat ID
-├ `.info` — User info
-├ `.tr [lang] [text]` — Translate
-├ `.tts` — Text to speech
-├ `.del` — Delete replied msg
-├ `.purge` — Bulk delete
-├ `.afk` / `.unafk` — AFK mode
-├ `.speedtest` — Speed test
+**🔧 Utility:**
+├ `.alive` — Check bot status & uptime
+├ `.ping` — Response time in ms
+├ `.id` — Show user/chat ID
+├ `.info` — User info (reply or self)
+├ `.tr [lang]` — Translate replied message
+├ `.tts` — Text to speech (reply/text)
+├ `.del` — Delete replied message
+├ `.purge` — Purge msgs from reply to now
+├ `.afk [reason]` — Enable AFK mode
+├ `.unafk` — Disable AFK mode
+├ `.speedtest` — Internet speed test
 ├ `.calc [expr]` — Calculator
-├ `.restart` — Restart userbot
 
-👤 **Profile:**
-├ `.bio [text]` — Update bio
-├ `.name [first] [last]` — Change name
-├ `.pfp` — Change profile pic
-├ `.stats` — Account info
-├ `.tg @user` — Full user details
-├ `.clone @user` — Clone profile
+**📱 Social/Info:**
+├ `.chatinfo` — Group/chat details
+├ `.admins` — List group admins
+├ `.invite` — Generate invite link
 
-📱 **Social/Info:**
-├ `.chatinfo` — Chat details
-├ `.admins` — Group admins
-├ `.invite` — Invite link
-├ `.topmsg [n]` — Top active users
-├ `.msgcount @user` — Message count
-├ `.activity` — Chat activity graph
-├ `.top10` — Top 10 members
+**🎵 Media:**
+├ `.yt [query]` — Download YouTube video
+├ `.ytm [query]` — Download YouTube audio
+├ `.sticker` — Convert image to sticker
 
-🎵 **Media:**
-├ `.yt [query]` — YouTube video
-├ `.ytm [query]` — YouTube audio
-├ `.sticker` — Image/GIF to sticker
-├ `.resize [WxH/%]` — Resize image
-├ `.pdf` — Images to PDF
-├ `.ss [url]` — Website screenshot
-├ `.down [url]` — Download file
-├ `.ocr` — Extract text from image
-├ `.invert` — Invert image
-├ `.blur` — Blur image
-├ `.gray` — Grayscale image
-├ `.enhance` — Sharpen image
-├ `.dlall [@chat]` — Download all media
-
-🤖 **AI:**
+**🤖 AI:**
 ├ `.ai [text]` — Chat with AI
 
-💬 **Text Effects:**
-├ `.mock` — mOcKiNg text
-├ `.fancy` — 𝓯𝓪𝓷𝓬𝔂 text
-├ `.reverse` — esreveR text
-├ `.ascii [text]` — ASCII art
-├ `.bold` — **Bold**
-├ `.italic` — _Italic_
-├ `.spoiler` — ||Spoiler||
-├ `.strike` — ~~Strike~~
-├ `.type [text]` — Typing effect
-
-😎 **Fun:**
+**😎 Fun:**
 ├ `.joke` — Random joke
 ├ `.quote` — Inspirational quote
 ├ `.flip` — Coin flip
-├ `.roast [name]` — Roast
 ├ `.roll` — Dice roll
+├ `.roast [name]` — Roast someone
 
-🔍 **Search/Info:**
-├ `.wiki [query]` — Wikipedia
-├ `.weather [city]` — Weather
-├ `.crypto [coin]` — Crypto price
-├ `.currency [amt] [from] [to]` — Convert
-├ `.news [topic]` — Latest news
-├ `.ip [address]` — IP lookup (JSON)
-├ `.search [text]` — Chat search
-├ `.bin [bin]` — BIN info (JSON)
+**⚡ Automation:**
+├ `.autoreply [trigger] | [response]` — Set auto reply
+├ `.delauto [trigger]` — Delete auto reply
+├ `.listauto` — List auto replies
+├ `.forward [chat_id]` — Forward message
 
-💳 **Card Tools:**
-├ `.gen [bin|mm|yy|cvv] [n]` — Generate cards
-├ `.chk [card]` — Luhn check
-
-🎭 **Chat Actions:**
-├ `.typing [sec]` — ⌨️ Typing...
-├ `.recording [sec]` — 🎤 Recording...
-├ `.uploading [sec]` — 📤 Uploading...
-├ `.playing [sec]` — 🎮 Playing...
-├ `.cancel` — Stop action
-
-🛡️ **Privacy:**
-├ `.ghost [sec]` — Auto delete msg
-├ `.disappear [sec]` — Chat TTL
-├ `.encrypt [text]` — Encrypt
-├ `.decrypt [text]` — Decrypt
-
-⚡ **Automation:**
-├ `.autoreply [trigger] | [resp]` — Auto reply
-├ `.delauto [trigger]` — Delete rule
-├ `.listauto` — List rules
-├ `.autofwd @src @dst` — Auto forward
-├ `.forward [chat_id]` — Forward msg
-├ `.spam [n] [text]` — Spam msg
-
-🛡️ **Group Admin:**
-├ `.promote` — Promote to admin
-├ `.demote` — Demote from admin
-├ `.title [text]` — Set admin title
-├ `.ban` / `.unban` — Ban/Unban
+**🛡️ Group Admin:**
+├ `.ban` — Ban user
 ├ `.kick` — Kick user
-├ `.mute` / `.unmute` — Mute/Unmute
-├ `.tmute [10m/2h/1d]` — Timed mute
-├ `.warn [reason]` — Warn (3=ban)
-├ `.unwarn` — Remove warning
-├ `.pin` / `.unpin` — Pin/Unpin
+├ `.mute` — Mute user
+├ `.unmute` — Unmute user
+├ `.pin` — Pin message
+├ `.unpin` — Unpin message
 
-📁 **Scrape Tools:**
-├ `.scr @group [n]` — Scrape cards/combos
-├ `.scrfile @group` — Scrape & merge files
-├ `.fwd @src @dst [n]` — Bulk forward
-├ `.nuke` — Delete own messages
-
-📦 **Utility Tools:**
-├ `.qr [text]` — QR code
-├ `.short [url]` — Shorten URL
-├ `.paste [text]` — Upload to paste
-├ `.base64 encode/decode` — Base64
-
-📊 **Productivity:**
-├ `.remind [time] [text]` — Reminder
-├ `.notes save/list` — Notes
-├ `.todo add/list/done` — Todo list
-
-📧 **Mail (mail.tm):**
-├ `.mail new` — New temp email
-├ `.mail inbox` — Check inbox
-├ `.mail read [id]` — Read email
-├ `.mail otp` — Extract OTP
-├ `.mail watch [sec]` — Monitor inbox
-├ `.mail delete` — Delete account
-├ `.mail domains` — Available domains
-├ `.mail chatpdf` — ChatPDF checkout
-
-🔐 **Account Generators:**
-├ `.mail chatpdf` — ChatPDF Stripe checkout
-├ `.1vpn [monthly/yearly]` — 1VPN checkout
-
-└ `.help` — Show this help
-"""
+└ `.help` — Show this help"""
     await message.edit_text(help_text)
 
 
@@ -663,24 +565,11 @@ async def sticker_cmd(client, message: Message):
         elif reply.photo or (reply.document and reply.document.mime_type and "image" in reply.document.mime_type):
             await message.edit_text("⏳ Converting to sticker...")
             photo_path = await reply.download()
-            # Wait for file to be fully written
-            import time as _time
-            _time.sleep(0.5)
-            # Verify file exists and is readable
-            if not os.path.exists(photo_path) or os.path.getsize(photo_path) == 0:
-                await message.edit_text("❌ Download failed, try again!")
-                return
 
             with tempfile.NamedTemporaryFile(suffix=".webp", delete=False) as f:
-                try:
-                    img = Image.open(photo_path)
-                    img = img.convert("RGBA")
-                    img = img.resize((512, 512))
-                    img.save(f.name, "WEBP")
-                except Exception as img_err:
-                    await message.edit_text(f"❌ Image error: `{img_err}`")
-                    os.unlink(photo_path)
-                    return
+                img = Image.open(photo_path)
+                img = img.resize((512, 512))
+                img.save(f.name, "WEBP")
                 await message.delete()
                 await client.send_sticker(message.chat.id, f.name)
                 os.unlink(f.name)
@@ -1996,26 +1885,11 @@ def _complete_luhn(base):
             return candidate
     return None
 
-def _get_card_length(brand="", bin_prefix=""):
+def _get_card_length(brand):
     brand = (brand or "").upper()
-    bin_str = str(bin_prefix)[:6]
-    
-    # Check by BIN prefix first (more accurate)
-    if bin_str[:2] in {"34", "37"}:
-        return 15  # AMEX
-    if bin_str[:2] == "36" or bin_str[:3] in {"300","301","302","303","304","305","309"}:
-        return 14  # Diners
-    if bin_str[:1] == "4":
-        return 16  # Visa
-    if bin_str[:2] in {"51","52","53","54","55"}:
-        return 16  # Mastercard
-    if bin_str[:4] in {"6011","6304","6759","6761","6762","6763"}:
-        return 16  # Maestro/Discover
-    
-    # Fallback by brand name
     if brand in {"AMEX", "AMERICAN EXPRESS"}:
         return 15
-    if brand in {"DINERS CLUB", "DINERS"}:
+    if brand == "DINERS CLUB":
         return 14
     return 16
 
@@ -2035,7 +1909,7 @@ async def _gen_cards(cc_bin, amount=10, mes="x", ano="x", cvv="x"):
     except:
         pass
     
-    card_length = _get_card_length(brand, bin_part)
+    card_length = _get_card_length(brand)
     cvv_length = 4 if card_length == 15 else 3
 
     output = []
@@ -2046,16 +1920,13 @@ async def _gen_cards(cc_bin, amount=10, mes="x", ano="x", cvv="x"):
         attempts += 1
         
         # Build base from BIN pattern
-        raw_base = ''.join(
+        base = ''.join(
             random.choice("0123456789") if c.lower() == "x" else c 
             for c in cc_bin
-            if c.isdigit() or c.lower() == "x"
         )
-        # Pad/trim to exactly card_length - 1
-        if len(raw_base) > card_length - 1:
-            base = raw_base[:card_length - 1]
-        else:
-            base = raw_base + ''.join(random.choices("0123456789", k=card_length - 1 - len(raw_base)))
+        base = base[:card_length - 1]
+        if len(base) < card_length - 1:
+            base += ''.join(random.choices("0123456789", k=card_length - 1 - len(base)))
         
         card_number = _complete_luhn(base)
         if not card_number or card_number in seen:
@@ -2533,11 +2404,7 @@ async def scr_cmd(client, message: Message):
             return
 
         target = args[1].strip()
-        try:
-            limit = int(args[2]) if len(args) > 2 else 500
-            limit = max(1, min(limit, 5000))  # 1 to 5000
-        except:
-            limit = 500
+        limit = int(args[2]) if len(args) > 2 else 200
 
         try:
             chat = await client.get_chat(target)
@@ -2547,7 +2414,7 @@ async def scr_cmd(client, message: Message):
             await message.edit_text(f"❌ Could not access chat: `{e}`")
             return
 
-        await message.edit_text(f"🔍 Scraping **{chat_title}** ({limit} msgs)...")
+        await message.edit_text(f"🔍 Scraping **{chat_title}** (limit: {limit})...")
 
         # Patterns
         card_pattern = re.compile(r'\d{13,19}\|\d{1,2}\|\d{2,4}\|\d{3,4}')
@@ -2556,7 +2423,7 @@ async def scr_cmd(client, message: Message):
         found_items = []
         scanned = 0
 
-        async for msg in client.get_chat_history(chat_id, limit=min(limit, 200)):
+        async for msg in client.get_chat_history(chat_id, limit=limit):
             scanned += 1
             if msg.text:
                 # Find cards
@@ -3115,837 +2982,6 @@ async def cancel_action_cmd(client, message: Message):
         await message.edit_text(f"❌ Error: `{e}`")
 
 
-
-
-# ==========================================
-# 🖼️ IMAGE/FILE UTILITY COMMANDS (v6)
-# ==========================================
-
-# Command: .resize — Resize replied image
-# Usage: .resize 512x512 or .resize 50%
-@app.on_message(filters.me & filters.command("resize", prefixes="."))
-async def resize_cmd(client, message: Message):
-    try:
-        from PIL import Image
-        import tempfile
-
-        reply = message.reply_to_message
-        if not reply or not reply.photo:
-            await message.edit_text("⚠️ Reply to an image with `.resize 512x512` or `.resize 50%`")
-            return
-
-        args = message.text.split(None, 1)
-        if len(args) < 2:
-            await message.edit_text("⚠️ Usage: `.resize 512x512` or `.resize 50%`")
-            return
-
-        size_arg = args[1].strip()
-        await message.edit_text("⏳ Resizing image...")
-
-        photo_path = await reply.download()
-        img = Image.open(photo_path)
-
-        if "%" in size_arg:
-            percent = int(size_arg.replace("%", ""))
-            new_w = int(img.width * percent / 100)
-            new_h = int(img.height * percent / 100)
-        elif "x" in size_arg.lower():
-            parts = size_arg.lower().split("x")
-            new_w = int(parts[0])
-            new_h = int(parts[1])
-        else:
-            await message.edit_text("⚠️ Format: `512x512` or `50%`")
-            os.unlink(photo_path)
-            return
-
-        img_resized = img.resize((new_w, new_h), Image.LANCZOS)
-
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            img_resized.save(f.name, "PNG")
-            await message.delete()
-            await client.send_photo(
-                message.chat.id,
-                f.name,
-                caption=f"🖼 Resized to **{new_w}x{new_h}**"
-            )
-            os.unlink(f.name)
-        os.unlink(photo_path)
-
-    except Exception as e:
-        await message.edit_text(f"❌ Resize error: `{e}`")
-
-
-# Command: .pdf — Convert replied images to a single PDF
-# Usage: Reply to image and type .pdf or .pdf 5 (take last 5 images)
-@app.on_message(filters.me & filters.command("pdf", prefixes="."))
-async def pdf_cmd(client, message: Message):
-    try:
-        from PIL import Image
-        import tempfile
-
-        reply = message.reply_to_message
-        if not reply or not reply.photo:
-            await message.edit_text("⚠️ Reply to an image. Use `.pdf` or `.pdf 5` (last 5 images)")
-            return
-
-        args = message.text.split(None, 1)
-        count = int(args[1]) if len(args) > 1 and args[1].isdigit() else 1
-
-        await message.edit_text(f"⏳ Converting {count} image(s) to PDF...")
-
-        images = []
-        if count == 1:
-            # Single image from reply
-            photo_path = await reply.download()
-            img = Image.open(photo_path).convert("RGB")
-            images.append(img)
-            temp_paths = [photo_path]
-        else:
-            # Fetch last N images from chat
-            temp_paths = []
-            collected = 0
-            async for msg in client.get_chat_history(message.chat.id, limit=50):
-                if msg.photo and collected < count:
-                    photo_path = await msg.download()
-                    img = Image.open(photo_path).convert("RGB")
-                    images.append(img)
-                    temp_paths.append(photo_path)
-                    collected += 1
-                if collected >= count:
-                    break
-            images.reverse()
-
-        if not images:
-            await message.edit_text("⚠️ No images found.")
-            return
-
-        # Save as PDF
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-            pdf_path = f.name
-            if len(images) == 1:
-                images[0].save(pdf_path, "PDF")
-            else:
-                images[0].save(pdf_path, "PDF", save_all=True, append_images=images[1:])
-
-        await message.delete()
-        await client.send_document(
-            message.chat.id,
-            pdf_path,
-            caption=f"📄 PDF — {len(images)} page(s)"
-        )
-
-        os.unlink(pdf_path)
-        for p in temp_paths:
-            try:
-                os.unlink(p)
-            except:
-                pass
-
-    except Exception as e:
-        await message.edit_text(f"❌ PDF error: `{e}`")
-
-
-# Command: .ss — Take screenshot of a website
-# Usage: .ss https://google.com
-@app.on_message(filters.me & filters.command("ss", prefixes="."))
-async def ss_cmd(client, message: Message):
-    try:
-        import tempfile
-
-        args = message.text.split(None, 1)
-        if len(args) < 2:
-            await message.edit_text("⚠️ Usage: `.ss https://google.com`")
-            return
-
-        url = args[1].strip()
-        if not url.startswith("http"):
-            url = "https://" + url
-
-        await message.edit_text(f"📸 Taking screenshot of `{url}`...")
-
-        screenshot_url = f"https://image.thum.io/get/width/1280/crop/900/noanimate/{url}"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(screenshot_url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
-                if resp.status == 200:
-                    img_data = await resp.read()
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-                        f.write(img_data)
-                        tmp_path = f.name
-
-                    await message.delete()
-                    await client.send_photo(
-                        message.chat.id,
-                        tmp_path,
-                        caption=f"📸 Screenshot: {url}"
-                    )
-                    os.unlink(tmp_path)
-                else:
-                    await message.edit_text(f"❌ Screenshot failed. Status: {resp.status}")
-
-    except asyncio.TimeoutError:
-        await message.edit_text("❌ Screenshot timed out. Try again.")
-    except Exception as e:
-        await message.edit_text(f"❌ Screenshot error: `{e}`")
-
-
-# Command: .down — Download file from URL and send
-# Usage: .down https://example.com/file.zip
-@app.on_message(filters.me & filters.command("down", prefixes="."))
-async def down_cmd(client, message: Message):
-    try:
-        import tempfile
-        import urllib.parse
-
-        args = message.text.split(None, 1)
-        if len(args) < 2:
-            await message.edit_text("⚠️ Usage: `.down <url>`")
-            return
-
-        url = args[1].strip()
-        if not url.startswith("http"):
-            url = "https://" + url
-
-        await message.edit_text(f"⬇️ Downloading...")
-
-        max_size = 50 * 1024 * 1024  # 50MB
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=120)) as resp:
-                if resp.status != 200:
-                    await message.edit_text(f"❌ Download failed. HTTP {resp.status}")
-                    return
-
-                content_length = resp.headers.get("Content-Length")
-                if content_length and int(content_length) > max_size:
-                    await message.edit_text(f"❌ File too large (>{50}MB limit)")
-                    return
-
-                # Get filename from URL or headers
-                fname = ""
-                if "Content-Disposition" in resp.headers:
-                    cd = resp.headers["Content-Disposition"]
-                    if "filename=" in cd:
-                        fname = cd.split("filename=")[-1].strip('"').strip("'")
-                if not fname:
-                    fname = os.path.basename(urllib.parse.urlparse(url).path) or "downloaded_file"
-
-                # Download with progress
-                downloaded = 0
-                chunks = []
-                async for chunk in resp.content.iter_chunked(1024 * 256):
-                    chunks.append(chunk)
-                    downloaded += len(chunk)
-                    if downloaded > max_size:
-                        await message.edit_text(f"❌ File exceeds 50MB limit. Stopped.")
-                        return
-
-                mb = downloaded / (1024 * 1024)
-                await message.edit_text(f"⬇️ Downloaded {mb:.1f} MB. Sending...")
-
-                with tempfile.NamedTemporaryFile(delete=False, suffix="_" + fname) as f:
-                    for c in chunks:
-                        f.write(c)
-                    tmp_path = f.name
-
-        await message.delete()
-        await client.send_document(
-            message.chat.id,
-            tmp_path,
-            file_name=fname,
-            caption=f"📥 **{fname}** ({mb:.1f} MB)"
-        )
-        os.unlink(tmp_path)
-
-    except asyncio.TimeoutError:
-        await message.edit_text("❌ Download timed out (120s limit).")
-    except Exception as e:
-        await message.edit_text(f"❌ Download error: `{e}`")
-
-
-# Command: .ocr — Extract text from image using OCR
-# Usage: Reply to image and type .ocr
-@app.on_message(filters.me & filters.command("ocr", prefixes="."))
-async def ocr_cmd(client, message: Message):
-    try:
-        import tempfile
-
-        reply = message.reply_to_message
-        if not reply or not (reply.photo or (reply.document and reply.document.mime_type and "image" in reply.document.mime_type)):
-            await message.edit_text("⚠️ Reply to an image with `.ocr`")
-            return
-
-        await message.edit_text("🔍 Extracting text (OCR)...")
-
-        photo_path = await reply.download()
-
-        # Try pytesseract first
-        ocr_text = None
-        try:
-            import pytesseract
-            from PIL import Image
-            img = Image.open(photo_path)
-            ocr_text = pytesseract.image_to_string(img)
-        except Exception:
-            pass
-
-        # Fallback: OCR.space API
-        if not ocr_text or not ocr_text.strip():
-            try:
-                import requests
-                with open(photo_path, "rb") as img_file:
-                    resp = requests.post(
-                        "https://api.ocr.space/parse/image",
-                        files={"file": img_file},
-                        data={"apikey": "helloworld", "language": "eng"},
-                        timeout=30
-                    )
-                result = resp.json()
-                if result.get("ParsedResults"):
-                    ocr_text = result["ParsedResults"][0].get("ParsedText", "")
-            except Exception as api_err:
-                await message.edit_text(f"❌ OCR API error: `{api_err}`")
-                os.unlink(photo_path)
-                return
-
-        os.unlink(photo_path)
-
-        if not ocr_text or not ocr_text.strip():
-            await message.edit_text("⚠️ No text detected in this image.")
-            return
-
-        ocr_text = ocr_text.strip()
-
-        # If text too long, send as file
-        if len(ocr_text) > 4000:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-                f.write(ocr_text)
-                tmp_path = f.name
-            await message.delete()
-            await client.send_document(
-                message.chat.id,
-                tmp_path,
-                caption="📝 OCR Result (text too long)"
-            )
-            os.unlink(tmp_path)
-        else:
-            await message.edit_text(f"📝 **OCR Result:**\n\n```\n{ocr_text}\n```")
-
-    except Exception as e:
-        await message.edit_text(f"❌ OCR error: `{e}`")
-
-
-
-
-# ==========================================
-# 📧 MAIL.TM TEMP EMAIL COMMANDS
-# ==========================================
-import re
-import string
-
-mail_sessions = {}  # chat_id -> {email, password, token, account_id}
-
-
-# Command: .mail
-@app.on_message(filters.me & filters.command("mail", prefixes="."))
-async def mail_cmd(client, message: Message):
-    try:
-        args = message.text.split()
-        if len(args) < 2:
-            await message.edit_text(
-                "📧 **Mail.tm Commands:**\n\n"
-                "├ `.mail new` — Create temp email\n"
-                "├ `.mail inbox` — Check inbox\n"
-                "├ `.mail read [id]` — Read email\n"
-                "├ `.mail otp` — Extract OTP from latest\n"
-                "├ `.mail watch [sec]` — Monitor inbox\n"
-                "├ `.mail delete` — Delete account\n"
-                "├ `.mail domains` — Show domains\n"
-                "└ `.mail chatpdf` — Generate ChatPDF account"
-            )
-            return
-
-        sub_cmd = args[1].lower()
-        chat_id = message.chat.id
-
-        # ─── .mail new ───
-        if sub_cmd == "new":
-            await message.edit_text("📧 Creating temp email...")
-            async with aiohttp.ClientSession() as session:
-                # Get available domain
-                async with session.get("https://api.mail.tm/domains") as resp:
-                    if resp.status != 200:
-                        await message.edit_text("❌ Failed to fetch domains from mail.tm")
-                        return
-                    data = await resp.json()
-                    domains = data.get("hydra:member", data) if isinstance(data, dict) else data
-                    if not domains:
-                        await message.edit_text("❌ No domains available.")
-                        return
-                    domain = domains[0]["domain"]
-
-                # Generate random credentials
-                username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
-                email = f"{username}@{domain}"
-                password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
-
-                # Create account
-                async with session.post(
-                    "https://api.mail.tm/accounts",
-                    json={"address": email, "password": password},
-                    headers={"Content-Type": "application/json"}
-                ) as resp:
-                    if resp.status not in (200, 201):
-                        err = await resp.text()
-                        await message.edit_text(f"❌ Account creation failed: `{err[:200]}`")
-                        return
-                    acc_data = await resp.json()
-                    account_id = acc_data.get("id", "")
-
-                # Get auth token
-                async with session.post(
-                    "https://api.mail.tm/token",
-                    json={"address": email, "password": password},
-                    headers={"Content-Type": "application/json"}
-                ) as resp:
-                    if resp.status != 200:
-                        await message.edit_text("❌ Failed to get auth token.")
-                        return
-                    token_data = await resp.json()
-                    token = token_data.get("token", "")
-
-                # Store session
-                mail_sessions[chat_id] = {
-                    "email": email,
-                    "password": password,
-                    "token": token,
-                    "account_id": account_id
-                }
-
-                await message.edit_text(
-                    f"📧 **Temp Email Created!**\n\n"
-                    f"├ **Email:** `{email}`\n"
-                    f"├ **Password:** `{password}`\n"
-                    f"└ **Status:** ✅ Active\n\n"
-                    f"Use `.mail inbox` to check messages."
-                )
-
-        # ─── .mail inbox ───
-        elif sub_cmd == "inbox":
-            if chat_id not in mail_sessions:
-                await message.edit_text("⚠️ No active mail session. Use `.mail new` first.")
-                return
-
-            token = mail_sessions[chat_id]["token"]
-            email = mail_sessions[chat_id]["email"]
-            await message.edit_text("📥 Checking inbox...")
-
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    "https://api.mail.tm/messages",
-                    headers={"Authorization": f"Bearer {token}"}
-                ) as resp:
-                    if resp.status == 401:
-                        await message.edit_text("❌ Token expired. Create new email with `.mail new`")
-                        return
-                    if resp.status != 200:
-                        await message.edit_text(f"❌ Failed to fetch inbox. Status: {resp.status}")
-                        return
-                    data = await resp.json()
-                    messages = data.get("hydra:member", data) if isinstance(data, dict) else data
-
-            if not messages:
-                await message.edit_text(f"📭 **Inbox Empty**\n\n📧 `{email}`")
-                return
-
-            text = f"📥 **Inbox** — `{email}`\n\n"
-            for i, msg in enumerate(messages[:10], 1):
-                sender = msg.get("from", {}).get("address", "Unknown")
-                subject = msg.get("subject", "No Subject")
-                msg_id = msg.get("id", "")
-                created = msg.get("createdAt", "")[:16].replace("T", " ")
-                text += f"**{i}.** `{msg_id[:8]}`\n"
-                text += f"├ **From:** {sender}\n"
-                text += f"├ **Subject:** {subject}\n"
-                text += f"└ **Date:** {created}\n\n"
-
-            text += f"Use `.mail read <id>` to read a message."
-            await message.edit_text(text[:4000])
-
-        # ─── .mail read [id] ───
-        elif sub_cmd == "read":
-            if chat_id not in mail_sessions:
-                await message.edit_text("⚠️ No active mail session. Use `.mail new` first.")
-                return
-
-            token = mail_sessions[chat_id]["token"]
-
-            # Get message ID
-            msg_id = args[2] if len(args) > 2 else None
-
-            async with aiohttp.ClientSession() as session:
-                if not msg_id:
-                    # Get latest message
-                    async with session.get(
-                        "https://api.mail.tm/messages",
-                        headers={"Authorization": f"Bearer {token}"}
-                    ) as resp:
-                        if resp.status != 200:
-                            await message.edit_text("❌ Failed to fetch inbox.")
-                            return
-                        data = await resp.json()
-                        messages = data.get("hydra:member", data) if isinstance(data, dict) else data
-                        if not messages:
-                            await message.edit_text("📭 No messages to read.")
-                            return
-                        msg_id = messages[0]["id"]
-
-                # Fetch full message
-                async with session.get(
-                    f"https://api.mail.tm/messages/{msg_id}",
-                    headers={"Authorization": f"Bearer {token}"}
-                ) as resp:
-                    if resp.status != 200:
-                        await message.edit_text(f"❌ Failed to read message. Status: {resp.status}")
-                        return
-                    msg_data = await resp.json()
-
-            sender = msg_data.get("from", {}).get("address", "Unknown")
-            subject = msg_data.get("subject", "No Subject")
-            created = msg_data.get("createdAt", "")[:16].replace("T", " ")
-            body = msg_data.get("text", "") or ""
-
-            # Strip HTML tags if text is empty but html exists
-            if not body.strip():
-                html_body = msg_data.get("html", "") or ""
-                if html_body:
-                    body = re.sub(r'<[^>]+>', '', html_body)
-                    body = re.sub(r'\s+', ' ', body).strip()
-
-            text = (
-                f"📨 **Email:**\n\n"
-                f"├ **From:** {sender}\n"
-                f"├ **Subject:** {subject}\n"
-                f"├ **Date:** {created}\n"
-                f"└ **ID:** `{msg_id}`\n\n"
-                f"**Body:**\n{body[:3500]}"
-            )
-            await message.edit_text(text[:4000])
-
-        # ─── .mail otp ───
-        elif sub_cmd == "otp":
-            if chat_id not in mail_sessions:
-                await message.edit_text("⚠️ No active mail session. Use `.mail new` first.")
-                return
-
-            token = mail_sessions[chat_id]["token"]
-            await message.edit_text("🔍 Searching for OTP...")
-
-            async with aiohttp.ClientSession() as session:
-                # Get latest message
-                async with session.get(
-                    "https://api.mail.tm/messages",
-                    headers={"Authorization": f"Bearer {token}"}
-                ) as resp:
-                    if resp.status != 200:
-                        await message.edit_text("❌ Failed to fetch inbox.")
-                        return
-                    data = await resp.json()
-                    messages = data.get("hydra:member", data) if isinstance(data, dict) else data
-                    if not messages:
-                        await message.edit_text("📭 No messages. OTP not found.")
-                        return
-
-                # Read latest message
-                msg_id = messages[0]["id"]
-                async with session.get(
-                    f"https://api.mail.tm/messages/{msg_id}",
-                    headers={"Authorization": f"Bearer {token}"}
-                ) as resp:
-                    if resp.status != 200:
-                        await message.edit_text("❌ Failed to read message.")
-                        return
-                    msg_data = await resp.json()
-
-            body = msg_data.get("text", "") or ""
-            if not body.strip():
-                html_body = msg_data.get("html", "") or ""
-                body = re.sub(r'<[^>]+>', '', html_body)
-
-            # Search for 4-8 digit OTP
-            otp_matches = re.findall(r'\b(\d{4,8})\b', body)
-            subject = msg_data.get("subject", "")
-            otp_in_subject = re.findall(r'\b(\d{4,8})\b', subject)
-
-            all_otps = otp_in_subject + otp_matches
-
-            if all_otps:
-                otp = all_otps[0]
-                await message.edit_text(
-                    f"🔑 **OTP Found!**\n\n"
-                    f"├ **OTP:** `{otp}`\n"
-                    f"├ **From:** {msg_data.get('from', {}).get('address', 'Unknown')}\n"
-                    f"└ **Subject:** {msg_data.get('subject', 'N/A')}"
-                )
-            else:
-                await message.edit_text("⚠️ No OTP (4-8 digit code) found in latest email.")
-
-        # ─── .mail watch [seconds] ───
-        elif sub_cmd == "watch":
-            if chat_id not in mail_sessions:
-                await message.edit_text("⚠️ No active mail session. Use `.mail new` first.")
-                return
-
-            token = mail_sessions[chat_id]["token"]
-            duration = int(args[2]) if len(args) > 2 else 60
-            duration = min(duration, 300)  # Max 5 minutes
-
-            await message.edit_text(f"👁️ Watching inbox for **{duration}s**...")
-
-            # Get current message count
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    "https://api.mail.tm/messages",
-                    headers={"Authorization": f"Bearer {token}"}
-                ) as resp:
-                    data = await resp.json()
-                    messages = data.get("hydra:member", data) if isinstance(data, dict) else data
-                    known_ids = {m["id"] for m in messages} if messages else set()
-
-            start_time = time.time()
-            checked = 0
-
-            while time.time() - start_time < duration:
-                await asyncio.sleep(5)
-                checked += 1
-                elapsed = int(time.time() - start_time)
-                remaining = duration - elapsed
-
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                        "https://api.mail.tm/messages",
-                        headers={"Authorization": f"Bearer {token}"}
-                    ) as resp:
-                        if resp.status != 200:
-                            continue
-                        data = await resp.json()
-                        messages = data.get("hydra:member", data) if isinstance(data, dict) else data
-
-                if messages:
-                    for msg in messages:
-                        if msg["id"] not in known_ids:
-                            known_ids.add(msg["id"])
-                            sender = msg.get("from", {}).get("address", "Unknown")
-                            subject = msg.get("subject", "No Subject")
-                            await message.edit_text(
-                                f"🔔 **New Email Received!**\n\n"
-                                f"├ **From:** {sender}\n"
-                                f"├ **Subject:** {subject}\n"
-                                f"├ **ID:** `{msg['id'][:8]}`\n"
-                                f"└ **Time:** {elapsed}s into watch\n\n"
-                                f"Use `.mail read {msg['id']}` to read."
-                            )
-                            return
-
-                # Update countdown every 15s
-                if checked % 3 == 0:
-                    try:
-                        await message.edit_text(f"👁️ Watching inbox... **{remaining}s** remaining")
-                    except:
-                        pass
-
-            await message.edit_text(f"⏱️ Watch ended after **{duration}s**. No new emails received.")
-
-        # ─── .mail delete ───
-        elif sub_cmd == "delete":
-            if chat_id not in mail_sessions:
-                await message.edit_text("⚠️ No active mail session.")
-                return
-
-            token = mail_sessions[chat_id]["token"]
-            account_id = mail_sessions[chat_id].get("account_id", "")
-            email = mail_sessions[chat_id]["email"]
-
-            if account_id:
-                async with aiohttp.ClientSession() as session:
-                    async with session.delete(
-                        f"https://api.mail.tm/accounts/{account_id}",
-                        headers={"Authorization": f"Bearer {token}"}
-                    ) as resp:
-                        pass  # 204 = success, but we clear session regardless
-
-            del mail_sessions[chat_id]
-            await message.edit_text(f"🗑️ **Email Deleted:** `{email}`\n\nSession cleared.")
-
-        # ─── .mail domains ───
-        elif sub_cmd == "domains":
-            await message.edit_text("🌐 Fetching available domains...")
-            async with aiohttp.ClientSession() as session:
-                async with session.get("https://api.mail.tm/domains") as resp:
-                    if resp.status != 200:
-                        await message.edit_text("❌ Failed to fetch domains.")
-                        return
-                    data = await resp.json()
-                    domains = data.get("hydra:member", data) if isinstance(data, dict) else data
-
-            if not domains:
-                await message.edit_text("⚠️ No domains available.")
-                return
-
-            text = "🌐 **Available Domains:**\n\n"
-            for i, d in enumerate(domains, 1):
-                text += f"**{i}.** `@{d['domain']}`\n"
-            await message.edit_text(text)
-
-        # ─── .mail chatpdf ───
-        elif sub_cmd == "chatpdf":
-            await message.edit_text("🤖 Generating ChatPDF account via temp mail...")
-
-            async with aiohttp.ClientSession() as session:
-                # Step 1: Create temp email
-                async with session.get("https://api.mail.tm/domains") as resp:
-                    if resp.status != 200:
-                        await message.edit_text("❌ Failed to fetch domains.")
-                        return
-                    data = await resp.json()
-                    domains = data.get("hydra:member", data) if isinstance(data, dict) else data
-                    if not domains:
-                        await message.edit_text("❌ No domains available.")
-                        return
-                    domain = domains[0]["domain"]
-
-                username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
-                email = f"{username}@{domain}"
-                password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
-
-                # Create mail.tm account
-                async with session.post(
-                    "https://api.mail.tm/accounts",
-                    json={"address": email, "password": password},
-                    headers={"Content-Type": "application/json"}
-                ) as resp:
-                    if resp.status not in (200, 201):
-                        await message.edit_text("❌ Failed to create temp email for ChatPDF.")
-                        return
-                    acc_data = await resp.json()
-                    account_id = acc_data.get("id", "")
-
-                # Get token
-                async with session.post(
-                    "https://api.mail.tm/token",
-                    json={"address": email, "password": password},
-                    headers={"Content-Type": "application/json"}
-                ) as resp:
-                    if resp.status != 200:
-                        await message.edit_text("❌ Failed to get mail token.")
-                        return
-                    token_data = await resp.json()
-                    mail_token = token_data.get("token", "")
-
-                await message.edit_text("🤖 Generating ChatPDF checkout...")
-
-                # ChatPDF via VPS3 API
-                try:
-                    import requests as _req
-                    r_api = _req.get("http://155.103.70.111:5000/api/chatgpt/gen", timeout=90)
-                    api_data = r_api.json()
-                    if api_data.get("status") == "ok":
-                        checkout_url = api_data.get("url", "N/A")
-                        acc_email = api_data.get("email", email)
-                        acc_pass = api_data.get("password", "Daxx@2026#")
-                        mail_sessions[chat_id] = {"email": acc_email, "password": acc_pass, "token": mail_token, "account_id": account_id}
-                        await message.edit_text(
-                            f"✅ **ChatPDF Generated!**\n\n"
-                            f"📧 **Email:** `{acc_email}`\n"
-                            f"🔑 **Password:** `{acc_pass}`\n"
-                            f"💳 **Checkout:** `{checkout_url}`"
-                        )
-                    else:
-                        await message.edit_text("❌ ChatPDF error: " + str(api_data.get("message","Unknown"))[:100])
-                except Exception as cp_err:
-                    await message.edit_text(f"❌ ChatPDF error: `{str(cp_err)[:100]}`")
-
-    except Exception as e:
-        try:
-            await message.edit_text(f"❌ Mail error: `{str(e)[:100]}`")
-        except:
-            pass
-
-
-
-# ==========================================
-# 🔐 1VPN CHECKOUT GENERATOR
-# ==========================================
-
-@app.on_message(filters.me & filters.command("1vpn", prefixes="."))
-async def vpn_gen_cmd(client, message: Message):
-    try:
-        import requests as _req, re, random, string
-        from bs4 import BeautifulSoup as _BS
-
-        args = message.text.split(None, 1)
-        plan = args[1].strip().lower() if len(args) > 1 else "yearly"
-        if plan not in ["yearly", "monthly", "free"]:
-            await message.edit_text("⚠️ **Usage:** `.1vpn yearly` or `.1vpn monthly`")
-            return
-
-        await message.edit_text("⚙️ Generating 1VPN checkout...")
-
-        _headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0",
-            "Accept": "text/html,*/*",
-        }
-        s = _req.Session()
-
-        # Temp email
-        r_d = _req.get("https://api.mail.tm/domains", timeout=10)
-        domain = r_d.json()["hydra:member"][0]["domain"]
-        user = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
-        email = f"{user}@{domain}"
-        password = "Daxx@2026#"
-        _req.post("https://api.mail.tm/accounts", json={"address": email, "password": password}, timeout=10)
-
-        # Signup
-        r = s.get("https://1vpn.org/signup/", headers=_headers, timeout=15)
-        soup = _BS(r.text, "html.parser")
-        csrf = soup.find("input", {"name": "csrfmiddlewaretoken"})["value"]
-        s.post("https://1vpn.org/signup/",
-            headers={**_headers, "Referer": "https://1vpn.org/signup/", "Origin": "https://1vpn.org"},
-            data={"csrfmiddlewaretoken": csrf, "email": email, "password1": password},
-            timeout=15, allow_redirects=True)
-
-        # Plan page
-        r2 = s.get("https://1vpn.org/select-plan/", headers=_headers, timeout=15)
-        csrf2 = _BS(r2.text, "html.parser").find("input", {"name": "csrfmiddlewaretoken"})["value"]
-
-        # Submit checkout
-        r3 = s.post("https://1vpn.org/payments/select_method/",
-            headers={**_headers, "Referer": "https://1vpn.org/select-plan/", "Origin": "https://1vpn.org"},
-            data={"csrfmiddlewaretoken": csrf2, "plan": plan, "payment_method": "stripe"},
-            timeout=20, allow_redirects=True)
-
-        checkout_url = r3.url if "stripe" in r3.url.lower() or "pay.1vpn" in r3.url.lower() else None
-
-        if checkout_url:
-            await message.edit_text(
-                f"✅ **1VPN Checkout Generated!**\n\n"
-                f"📧 **Email:** `{email}`\n"
-                f"🔑 **Password:** `{password}`\n"
-                f"📦 **Plan:** `{plan}`\n"
-                f"💳 **Checkout:** `{checkout_url}`"
-            )
-        else:
-            await message.edit_text(
-                f"⚠️ Account created but no checkout URL.\n\n"
-                f"📧 **Email:** `{email}`\n"
-                f"🔑 **Password:** `{password}`\n"
-                f"🌐 Login: https://1vpn.org/select-plan/"
-            )
-
-    except Exception as e:
-        await message.edit_text(f"❌ 1VPN error: `{str(e)[:100]}`")
-
-
 if __name__ == "__main__":
-    print("Starting userbot...")
-    app.run()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
