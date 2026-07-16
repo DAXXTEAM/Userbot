@@ -2272,17 +2272,45 @@ async def scrfile_cmd(client, message: Message):
 
         # Extract chat id/username from t.me link
         if "t.me/" in target:
-            target = target.split("t.me/")[-1].strip("/")
+            path = target.split("t.me/")[-1].strip("/")
+            # Private invite link starts with +
+            if path.startswith("+"):
+                target = path  # keep as invite hash
+            else:
+                target = path
 
-        await message.edit_text(f"🔍 Accessing `{target}`...")
+        await message.edit_text(f"🔍 Accessing `{target[:30]}`...")
 
-        # Resolve chat
+        # Resolve chat — handle private invite links
         try:
-            chat = await client.get_chat(target)
-            chat_id = chat.id
-            chat_title = chat.title or chat.username or str(chat_id)
+            if target.startswith("+"):
+                # Private invite link — join first
+                invite_link = f"https://t.me/{target}" if not target.startswith("http") else target
+                try:
+                    chat = await client.join_chat(invite_link)
+                    chat_id = chat.id
+                    chat_title = chat.title or str(chat_id)
+                    await message.edit_text(f"✅ Joined `{chat_title}`, scraping...")
+                except Exception as join_e:
+                    if "already" in str(join_e).lower() or "USER_ALREADY" in str(join_e):
+                        # Already member, try to get via invite
+                        await message.edit_text("📥 Already in group, scraping...")
+                        # Get all dialogs and find by recent activity
+                        async for dialog in client.get_dialogs(limit=50):
+                            if dialog.chat.type.name in ["GROUP","SUPERGROUP","CHANNEL"]:
+                                chat = dialog.chat
+                                chat_id = chat.id
+                                chat_title = chat.title
+                                break
+                    else:
+                        await message.edit_text(f"❌ Could not join: `{str(join_e)[:100]}`")
+                        return
+            else:
+                chat = await client.get_chat(target)
+                chat_id = chat.id
+                chat_title = chat.title or chat.username or str(chat_id)
         except Exception as e:
-            await message.edit_text(f"❌ Could not access chat: `{e}`")
+            await message.edit_text(f"❌ Could not access chat: `{str(e)[:100]}`")
             return
 
         await message.edit_text(f"📥 Scraping files from **{chat_title}**...")
