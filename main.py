@@ -4143,6 +4143,160 @@ async def freecad_cmd(client, message: Message):
         await message.edit_text(f"❌ FreeCAD error: `{str(e)[:100]}`")
 
 
+
+# ==========================================
+# 💳 STRIPE CHECKOUT GENERATOR
+# ==========================================
+
+_sk_store = {}  # chat_id -> sk_key
+
+@app.on_message(filters.me & filters.command("setsk", prefixes="."))
+async def setsk_cmd(client, message: Message):
+    try:
+        args = message.text.split(None, 1)
+        if len(args) < 2:
+            await message.edit_text("⚠️ **Usage:** `.setsk sk_live_xxxxx`")
+            return
+        sk = args[1].strip()
+        if not sk.startswith("sk_"):
+            await message.edit_text("❌ Invalid SK key! Must start with `sk_live_` or `sk_test_`")
+            return
+        _sk_store["global"] = sk  # Global — works in all chats
+        masked = sk[:12] + "..." + sk[-4:]
+        await message.edit_text(f"✅ **Stripe SK saved!**\n`{masked}`")
+    except Exception as e:
+        await message.edit_text(f"❌ Error: `{str(e)[:100]}`")
+
+@app.on_message(filters.me & filters.command("ch", prefixes="."))
+async def ch_cmd(client, message: Message):
+    try:
+        import requests as _req
+
+        # Get SK from store or default
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        args = message.text.split(None, 1)
+        try:
+            amount = float(args[1].strip()) if len(args) > 1 else 1.0
+        except:
+            amount = 1.0
+        amount_cents = int(amount * 100)
+
+        await message.edit_text(f"⚙️ Generating ${amount:.2f} checkout...")
+
+        r = _req.post(
+            "https://api.stripe.com/v1/checkout/sessions",
+            auth=(sk, ""),
+            data={
+                "mode": "payment",
+                "success_url": "https://example.com/success",
+                "cancel_url": "https://example.com/cancel",
+                "line_items[0][price_data][currency]": "usd",
+                "line_items[0][price_data][product_data][name]": "Payment",
+                "line_items[0][price_data][unit_amount]": str(amount_cents),
+                "line_items[0][quantity]": "1",
+            },
+            timeout=15
+        )
+
+        data = r.json()
+        if r.status_code == 200:
+            session_id = data.get("id", "")
+            url = data.get("url", "")
+            await message.edit_text(
+                f"✅ **Stripe Checkout Generated!**\n\n"
+                f"💰 **Amount:** `${amount:.2f} USD`\n"
+                f"🔑 **Session:** `{session_id[:30]}...`\n\n"
+                f"💳 **Checkout URL:**\n`{url}`",
+                disable_web_page_preview=True
+            )
+        else:
+            err = data.get("error", {}).get("message", "Unknown error")
+            await message.edit_text(f"❌ Stripe error: `{err}`")
+
+    except Exception as e:
+        await message.edit_text(f"❌ Error: `{str(e)[:100]}`")
+
+
+
+@app.on_message(filters.me & filters.command("inb", prefixes="."))
+async def inb_cmd(client, message: Message):
+    try:
+        import requests as _req
+
+        sk = _sk_store.get("global")
+        if not sk:
+            await message.edit_text("⚠️ Set SK first: `.setsk sk_live_xxxxx`")
+            return
+
+        args = message.text.split(None, 1)
+        try:
+            amount = float(args[1].strip()) if len(args) > 1 else 1.0
+        except:
+            amount = 1.0
+        amount_cents = int(amount * 100)
+
+        await message.edit_text(f"⚙️ Generating ${amount:.2f} invoice...")
+
+        # Step 1: Create customer
+        r_cust = _req.post("https://api.stripe.com/v1/customers",
+            auth=(sk, ""),
+            data={"email": "customer@example.com", "name": "Customer"},
+            timeout=15)
+        customer_id = r_cust.json().get("id", "")
+
+        # Step 2: Create invoice item
+        _req.post("https://api.stripe.com/v1/invoiceitems",
+            auth=(sk, ""),
+            data={
+                "customer": customer_id,
+                "amount": str(amount_cents),
+                "currency": "usd",
+                "description": f"Invoice ${amount:.2f}",
+            },
+            timeout=15)
+
+        # Step 3: Create invoice
+        r_inv = _req.post("https://api.stripe.com/v1/invoices",
+            auth=(sk, ""),
+            data={
+                "customer": customer_id,
+                "collection_method": "send_invoice",
+                "days_until_due": "7",
+            },
+            timeout=15)
+        inv_data = r_inv.json()
+        inv_id = inv_data.get("id", "")
+
+        # Step 4: Finalize invoice
+        _req.post(f"https://api.stripe.com/v1/invoices/{inv_id}/finalize",
+            auth=(sk, ""), timeout=15)
+
+        # Step 5: Get invoice URL
+        r_final = _req.get(f"https://api.stripe.com/v1/invoices/{inv_id}",
+            auth=(sk, ""), timeout=15)
+        final = r_final.json()
+        inv_url = final.get("hosted_invoice_url", "N/A")
+        inv_pdf = final.get("invoice_pdf", "N/A")
+        inv_num = final.get("number", inv_id[:15])
+
+        await message.edit_text(
+            f"✅ **Invoice Generated!**\n\n"
+            f"💰 **Amount:** `${amount:.2f} USD`\n"
+            f"📋 **Invoice #:** `{inv_num}`\n"
+            f"👤 **Customer:** `{customer_id}`\n\n"
+            f"🌐 **Invoice URL:**\n`{inv_url}`\n\n"
+            f"📄 **PDF:**\n`{inv_pdf}`",
+            disable_web_page_preview=True
+        )
+
+    except Exception as e:
+        await message.edit_text(f"❌ Invoice error: `{str(e)[:100]}`")
+
+
 if __name__ == "__main__":
     print("Starting userbot...")
     app.run()
