@@ -3974,6 +3974,197 @@ async def vpn_gen_cmd(client, message: Message):
         await message.edit_text(f"❌ 1VPN error: `{str(e)[:100]}`")
 
 
+
+# ==========================================
+# 🛡️ GROUP ADMIN COMMANDS
+# ==========================================
+
+@app.on_message(filters.me & filters.command("promote", prefixes="."))
+async def promote_cmd(client, message: Message):
+    try:
+        from pyrogram.types import ChatAdministratorRights
+        reply = message.reply_to_message
+        if not reply:
+            await message.edit_text("⚠️ Reply to a user to promote!")
+            return
+        user_id = reply.from_user.id
+        user_name = reply.from_user.first_name
+        await client.promote_chat_member(
+            message.chat.id, user_id,
+            privileges=ChatAdministratorRights(
+                can_manage_chat=True,
+                can_delete_messages=True,
+                can_manage_video_chats=True,
+                can_restrict_members=True,
+                can_promote_members=False,
+                can_change_info=True,
+                can_invite_users=True,
+                can_pin_messages=True,
+            )
+        )
+        await message.edit_text(f"✅ **{user_name}** promoted to Admin!")
+    except Exception as e:
+        await message.edit_text(f"❌ Promote error: `{str(e)[:100]}`")
+
+@app.on_message(filters.me & filters.command("demote", prefixes="."))
+async def demote_cmd(client, message: Message):
+    try:
+        from pyrogram.types import ChatAdministratorRights
+        reply = message.reply_to_message
+        if not reply:
+            await message.edit_text("⚠️ Reply to a user to demote!")
+            return
+        user_id = reply.from_user.id
+        user_name = reply.from_user.first_name
+        await client.promote_chat_member(
+            message.chat.id, user_id,
+            privileges=ChatAdministratorRights(
+                can_manage_chat=False,
+                can_delete_messages=False,
+                can_manage_video_chats=False,
+                can_restrict_members=False,
+                can_promote_members=False,
+                can_change_info=False,
+                can_invite_users=False,
+                can_pin_messages=False,
+            )
+        )
+        await message.edit_text(f"⬇️ **{user_name}** demoted from Admin!")
+    except Exception as e:
+        await message.edit_text(f"❌ Demote error: `{str(e)[:100]}`")
+
+@app.on_message(filters.me & filters.command("title", prefixes="."))
+async def title_cmd(client, message: Message):
+    try:
+        args = message.text.split(None, 1)
+        reply = message.reply_to_message
+        if not reply or len(args) < 2:
+            await message.edit_text("⚠️ Reply to admin + `.title New Title`")
+            return
+        user_id = reply.from_user.id
+        user_name = reply.from_user.first_name
+        title = args[1].strip()[:16]
+        await client.set_administrator_title(message.chat.id, user_id, title)
+        await message.edit_text(f"✅ **{user_name}** ka title: `{title}`")
+    except Exception as e:
+        await message.edit_text(f"❌ Title error: `{str(e)[:100]}`")
+
+@app.on_message(filters.me & filters.command("tmute", prefixes="."))
+async def tmute_cmd(client, message: Message):
+    try:
+        from pyrogram.types import ChatPermissions
+        from datetime import datetime, timedelta
+        args = message.text.split(None, 1)
+        reply = message.reply_to_message
+        if not reply:
+            await message.edit_text("⚠️ `.tmute 10m` | `.tmute 2h` | `.tmute 1d`")
+            return
+        user_id = reply.from_user.id
+        user_name = reply.from_user.first_name
+        duration = 60
+        if len(args) > 1:
+            t = args[1].strip()
+            if t.endswith("m"): duration = int(t[:-1]) * 60
+            elif t.endswith("h"): duration = int(t[:-1]) * 3600
+            elif t.endswith("d"): duration = int(t[:-1]) * 86400
+        until = datetime.utcnow() + timedelta(seconds=duration)
+        await client.restrict_chat_member(
+            message.chat.id, user_id,
+            ChatPermissions(all_perms=False),
+            until_date=until
+        )
+        dur_text = f"{duration//60}m" if duration < 3600 else f"{duration//3600}h"
+        await message.edit_text(f"🔇 **{user_name}** muted for `{dur_text}`")
+    except Exception as e:
+        await message.edit_text(f"❌ TMute error: `{str(e)[:100]}`")
+
+@app.on_message(filters.me & filters.command("warn", prefixes="."))
+async def warn_cmd(client, message: Message):
+    try:
+        reply = message.reply_to_message
+        if not reply:
+            await message.edit_text("⚠️ Reply to a user to warn!")
+            return
+        user_id = reply.from_user.id
+        user_name = reply.from_user.first_name
+        args = message.text.split(None, 1)
+        reason = args[1] if len(args) > 1 else "No reason"
+        key = f"{message.chat.id}_{user_id}"
+        if not hasattr(warn_cmd, "warns"):
+            warn_cmd.warns = {}
+        warn_cmd.warns[key] = warn_cmd.warns.get(key, 0) + 1
+        count = warn_cmd.warns[key]
+        await message.edit_text(f"⚠️ **{user_name}** warned! (`{count}/3`)\n**Reason:** {reason}")
+        if count >= 3:
+            await client.ban_chat_member(message.chat.id, user_id)
+            await message.reply(f"🚫 **{user_name}** banned after 3 warnings!")
+            warn_cmd.warns[key] = 0
+    except Exception as e:
+        await message.edit_text(f"❌ Warn error: `{str(e)[:100]}`")
+
+@app.on_message(filters.me & filters.command("unwarn", prefixes="."))
+async def unwarn_cmd(client, message: Message):
+    try:
+        reply = message.reply_to_message
+        if not reply:
+            await message.edit_text("⚠️ Reply to a user!")
+            return
+        user_id = reply.from_user.id
+        user_name = reply.from_user.first_name
+        key = f"{message.chat.id}_{user_id}"
+        if hasattr(warn_cmd, "warns"):
+            warn_cmd.warns[key] = max(0, warn_cmd.warns.get(key, 1) - 1)
+        await message.edit_text(f"✅ **{user_name}** ka 1 warn remove!")
+    except Exception as e:
+        await message.edit_text(f"❌ Error: `{str(e)[:100]}`")
+
+@app.on_message(filters.me & filters.command("unban", prefixes="."))
+async def unban_cmd(client, message: Message):
+    try:
+        reply = message.reply_to_message
+        if not reply:
+            await message.edit_text("⚠️ Reply to a user!")
+            return
+        user_id = reply.from_user.id
+        user_name = reply.from_user.first_name
+        await client.unban_chat_member(message.chat.id, user_id)
+        await message.edit_text(f"✅ **{user_name}** unbanned!")
+    except Exception as e:
+        await message.edit_text(f"❌ Unban error: `{str(e)[:100]}`")
+
+
+
+@app.on_message(filters.me & filters.command("freecad", prefixes="."))
+async def freecad_cmd(client, message: Message):
+    try:
+        import requests as _req
+        args = message.text.split(None, 1)
+        amount = args[1].strip() if len(args) > 1 else "1"
+        try: float(amount)
+        except: amount = "1"
+        await message.edit_text(f"⚙️ Generating FreeCAD checkout (${amount})...")
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) Chrome/150.0.0.0 Mobile Safari/537.36",
+            "Accept": "text/html,*/*",
+            "Referer": "https://www.freecad.org/",
+        }
+        r = _req.get("https://www.freecad.org/stripe-checkout-session.php",
+            params={"amount": amount, "currency": "usd"},
+            headers=headers, timeout=20, allow_redirects=True)
+        if "checkout.stripe.com" in r.url or "pay/" in r.url:
+            await message.edit_text(
+                f"✅ **FreeCAD Checkout!**\n\n"
+                f"💰 **Amount:** `${amount} USD`\n"
+                f"⚡ **Gateway:** Stripe\n\n"
+                f"💳 **URL:** `{r.url}`",
+                disable_web_page_preview=True
+            )
+        else:
+            await message.edit_text("❌ Could not generate checkout.")
+    except Exception as e:
+        await message.edit_text(f"❌ FreeCAD error: `{str(e)[:100]}`")
+
+
 if __name__ == "__main__":
     print("Starting userbot...")
     app.run()
