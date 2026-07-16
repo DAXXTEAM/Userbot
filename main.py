@@ -321,7 +321,6 @@ async def help_cmd(client, message: Message):
 ├ `.afk` / `.unafk` — AFK mode
 ├ `.speedtest` — Speed test
 ├ `.calc [expr]` — Calculator
-├ `.restart` — Restart userbot
 
 👤 **Profile:**
 ├ `.bio [text]` — Update bio
@@ -335,46 +334,34 @@ async def help_cmd(client, message: Message):
 ├ `.chatinfo` — Chat details
 ├ `.admins` — Group admins
 ├ `.invite` — Invite link
-├ `.topmsg [n]` — Top active users
+├ `.top10` / `.topmsg` — Active users
 ├ `.msgcount @user` — Message count
-├ `.activity` — Chat activity graph
-├ `.top10` — Top 10 members
+├ `.activity` — Chat activity
 
 🎵 **Media:**
 ├ `.yt [query]` — YouTube video
 ├ `.ytm [query]` — YouTube audio
 ├ `.sticker` — Image/GIF to sticker
-├ `.resize [WxH/%]` — Resize image
+├ `.resize [WxH]` — Resize image
 ├ `.pdf` — Images to PDF
 ├ `.ss [url]` — Website screenshot
 ├ `.down [url]` — Download file
 ├ `.ocr` — Extract text from image
-├ `.invert` — Invert image
-├ `.blur` — Blur image
-├ `.gray` — Grayscale image
-├ `.enhance` — Sharpen image
+├ `.invert` / `.blur` / `.gray` / `.enhance`
 ├ `.dlall [@chat]` — Download all media
 
 🤖 **AI:**
 ├ `.ai [text]` — Chat with AI
 
 💬 **Text Effects:**
-├ `.mock` — mOcKiNg text
-├ `.fancy` — 𝓯𝓪𝓷𝓬𝔂 text
-├ `.reverse` — esreveR text
-├ `.ascii [text]` — ASCII art
-├ `.bold` — **Bold**
-├ `.italic` — _Italic_
-├ `.spoiler` — ||Spoiler||
-├ `.strike` — ~~Strike~~
+├ `.mock` / `.fancy` / `.reverse` / `.ascii`
+├ `.bold` / `.italic` / `.spoiler` / `.strike`
 ├ `.type [text]` — Typing effect
 
 😎 **Fun:**
 ├ `.joke` — Random joke
 ├ `.quote` — Inspirational quote
-├ `.flip` — Coin flip
-├ `.roast [name]` — Roast
-├ `.roll` — Dice roll
+├ `.flip` / `.roll` / `.roast [name]`
 
 🔍 **Search/Info:**
 ├ `.wiki [query]` — Wikipedia
@@ -382,77 +369,68 @@ async def help_cmd(client, message: Message):
 ├ `.crypto [coin]` — Crypto price
 ├ `.currency [amt] [from] [to]` — Convert
 ├ `.news [topic]` — Latest news
-├ `.ip [address]` — IP lookup (JSON)
+├ `.ip [address]` — IP lookup
 ├ `.search [text]` — Chat search
-├ `.bin [bin]` — BIN info (JSON)
+├ `.bin [bin]` — BIN info
 
 💳 **Card Tools:**
 ├ `.gen [bin|mm|yy|cvv] [n]` — Generate cards
-├ `.chk [card]` — Luhn check
 
 🎭 **Chat Actions:**
-├ `.typing [sec]` — ⌨️ Typing...
-├ `.recording [sec]` — 🎤 Recording...
-├ `.uploading [sec]` — 📤 Uploading...
-├ `.playing [sec]` — 🎮 Playing...
+├ `.typing [sec]` — ⌨️ Typing
+├ `.recording [sec]` — 🎤 Recording
+├ `.uploading [sec]` — 📤 Uploading
+├ `.playing [sec]` — 🎮 Playing
 ├ `.cancel` — Stop action
 
 🛡️ **Privacy:**
-├ `.ghost [sec]` — Auto delete msg
+├ `.ghost [sec]` — Auto delete
 ├ `.disappear [sec]` — Chat TTL
-├ `.encrypt [text]` — Encrypt
-├ `.decrypt [text]` — Decrypt
+├ `.encrypt` / `.decrypt`
 
 ⚡ **Automation:**
-├ `.autoreply [trigger] | [resp]` — Auto reply
-├ `.delauto [trigger]` — Delete rule
-├ `.listauto` — List rules
-├ `.autofwd @src @dst` — Auto forward
-├ `.forward [chat_id]` — Forward msg
-├ `.spam [n] [text]` — Spam msg
+├ `.autoreply [trigger] | [resp]`
+├ `.delauto [trigger]` / `.listauto`
+├ `.autofwd @src @dst`
+├ `.forward [chat_id]`
+├ `.spam [n] [text]`
 
 🛡️ **Group Admin:**
-├ `.promote` — Promote to admin
-├ `.demote` — Demote from admin
-├ `.title [text]` — Set admin title
-├ `.ban` / `.unban` — Ban/Unban
-├ `.kick` — Kick user
-├ `.mute` / `.unmute` — Mute/Unmute
+├ `.promote` / `.demote`
+├ `.title [text]` — Admin title
+├ `.ban` / `.unban`
+├ `.kick` / `.mute` / `.unmute`
 ├ `.tmute [10m/2h/1d]` — Timed mute
-├ `.warn [reason]` — Warn (3=ban)
-├ `.unwarn` — Remove warning
-├ `.pin` / `.unpin` — Pin/Unpin
+├ `.warn [reason]` (3=ban) / `.unwarn`
+├ `.pin` / `.unpin`
 
-📁 **Scrape Tools:**
-├ `.scr @group [n]` — Scrape cards/combos
-├ `.scrfile @group` — Scrape & merge files
+📁 **Scrape:**
+├ `.scr @group [n]` — Scrape cards
+├ `.scrfile @group` — Scrape files
 ├ `.fwd @src @dst [n]` — Bulk forward
-├ `.nuke` — Delete own messages
+├ `.nuke` — Delete own msgs
 
-📦 **Utility Tools:**
+📦 **Tools:**
 ├ `.qr [text]` — QR code
 ├ `.short [url]` — Shorten URL
 ├ `.paste [text]` — Upload to paste
-├ `.base64 encode/decode` — Base64
+├ `.base64 encode/decode`
 
 📊 **Productivity:**
-├ `.remind [time] [text]` — Reminder
-├ `.notes save/list` — Notes
-├ `.todo add/list/done` — Todo list
+├ `.remind [time] [text]`
+├ `.notes save/list`
+├ `.todo add/list/done`
 
 📧 **Mail (mail.tm):**
-├ `.mail new` — New temp email
-├ `.mail inbox` — Check inbox
-├ `.mail read [id]` — Read email
-├ `.mail otp` — Extract OTP
-├ `.mail watch [sec]` — Monitor inbox
-├ `.mail delete` — Delete account
-├ `.mail domains` — Available domains
+├ `.mail new` / `.mail inbox`
+├ `.mail read` / `.mail otp`
+├ `.mail watch [sec]`
+├ `.mail delete` / `.mail domains`
 ├ `.mail chatpdf` — ChatPDF checkout
 
-🔐 **Account Generators:**
-├ `.mail chatpdf` — ChatPDF Stripe checkout
-├ `.1vpn [monthly/yearly]` — 1VPN checkout
+🔐 **Checkout Generators:**
+├ `.freecad [amount]` — FreeCAD Stripe
+├ `.1vpn [monthly/yearly]` — 1VPN
 
 └ `.help` — Show this help
 """
