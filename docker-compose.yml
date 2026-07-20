@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  userbot:
+    build: .
+    restart: unless-stopped
+    environment:
+      - SESSION_STRING=${SESSION_STRING}
+      - API_ID=${API_ID}
+      - API_HASH=${API_HASH}

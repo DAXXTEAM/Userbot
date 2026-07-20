@@ -1,0 +1,27 @@
+{
+  "name": "Imeshu Userbot",
+  "description": "Telegram Userbot with 105+ commands",
+  "keywords": ["telegram", "userbot", "python"],
+  "env": {
+    "SESSION_STRING": {
+      "description": "Your Telegram session string",
+      "required": true
+    },
+    "API_ID": {
+      "description": "Telegram API ID from my.telegram.org",
+      "required": true
+    },
+    "API_HASH": {
+      "description": "Telegram API Hash from my.telegram.org",
+      "required": true
+    }
+  },
+  "formation": {
+    "worker": {
+      "quantity": 1
+    }
+  },
+  "buildpacks": [
+    {"url": "heroku/python"}
+  ]
+}
